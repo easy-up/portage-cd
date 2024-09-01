@@ -116,7 +116,7 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ### Added
 
-- cmd/workflow-engine for cli
+- cmd/portage for cli
 - pkg/environments
 - pkg/jobs
 - pkg/pipelines

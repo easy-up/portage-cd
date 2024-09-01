@@ -18,24 +18,24 @@ COPY cmd ./cmd
 COPY pkg ./pkg
 
 RUN mkdir -p ../bin && \
-    go build -ldflags="-X 'main.cliVersion=${VERSION}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=${GIT_DESCRIPTION}'" -o ../bin/workflow-engine ./cmd/workflow-engine
+    go build -ldflags="-X 'main.cliVersion=${VERSION}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=${GIT_DESCRIPTION}'" -o ../bin/portage ./cmd/portage
 
-FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.5.1 as workflow-engine-base
+FROM ghcr.io/cms-enterprise/batcave/omnibus:v1.5.1 as portage-base
 
-COPY --from=build /app/bin/workflow-engine /usr/local/bin/workflow-engine
+COPY --from=build /app/bin/portage /usr/local/bin/portage
 
 # enable the Gatecheck beta CLI
 ENV GATECHECK_FF_CLI_V1_ENABLED=1
 
-ENTRYPOINT ["workflow-engine"]
+ENTRYPOINT ["portage"]
 
-LABEL org.opencontainers.image.title="workflow-engine-docker"
-LABEL org.opencontainers.image.description="A standalone CD engine for BatCAVE"
-LABEL org.opencontainers.image.licenses="CC0-1.0"
-LABEL io.artifacthub.package.readme-url="https://github.com/CMS-Enterprise/batcave-workflow-engine/blob/main/README.md"
-LABEL io.artifacthub.package.license="CC0-1.0"
+LABEL org.opencontainers.image.title="portage-docker"
+LABEL org.opencontainers.image.description="A standalone tool for secure, continuous delivery"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL io.artifacthub.package.readme-url="https://github.com/easy-up/portage-cd/blob/main/README.md"
+LABEL io.artifacthub.package.license="Apache-2.0"
 
-FROM workflow-engine-base as workflow-engine-podman
+FROM portage-base as portage-podman
 
 # Install podman CLIs
 RUN apk update && apk add --no-cache podman fuse-overlayfs
@@ -58,11 +58,11 @@ VOLUME /home/podman/.local/share/containers
 RUN mkdir -p /var/lib/clamav
 RUN chown podman /var/lib/clamav && chown podman /etc/clamav
 
-LABEL org.opencontainers.image.title="workflow-engine-podman"
+LABEL org.opencontainers.image.title="portage-podman"
 
-FROM workflow-engine-base
+FROM portage-base
 
 # Install docker CLI
 RUN apk update && apk add --no-cache docker-cli-buildx
 
-LABEL org.opencontainers.image.title="workflow-engine-docker"
+LABEL org.opencontainers.image.title="portage-docker"

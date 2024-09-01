@@ -1,23 +1,23 @@
-# Workflow Engine CLI Configuration
+# Portage CD CLI Configuration
 
-The Workflow Engine CLI provides a set of commands to manage the configuration of your workflow engine.
+The Portage CD CLI provides a set of commands to manage the configuration of your portage.
 These commands allow you to initialize, list variables, render, and convert configuration files in various formats.
 
 This documentation provides a comprehensive overview of the configuration management capabilities available in the
-Workflow Engine CLI.
+Portage CD CLI.
 For further assistance or more detailed examples, refer to the CLI's help command or the official documentation.
 
 ## Configuring Using Environment Variables, CLI Arguments, or Configuration Files
 
-The Workflow Engine supports flexible configuration methods to suit various operational environments.
+The Portage CD supports flexible configuration methods to suit various operational environments.
 You can configure the engine using environment variables, command-line (CLI) arguments, or configuration files in JSON,
 YAML, or TOML formats.
-This flexibility allows you to choose the most convenient way to set up your workflow engine based on your deployment
+This flexibility allows you to choose the most convenient way to set up your portage based on your deployment
 and development needs.
 
 ### Configuration Precedence
 
-The Workflow Engine uses Viper under the hood to manage its configurations, which follows a specific order of
+The Portage CD uses Viper under the hood to manage its configurations, which follows a specific order of
 precedence when merging configuration options:
 
 1. **Command-line Arguments**: These override values specified through other methods.
@@ -45,13 +45,13 @@ For each configuration option, there is usually a corresponding flag that can be
 For example:
 
 ```shell
-./workflow-engine run image-build --build-dir . --dockerfile custom.Dockerfile
+./portage run image-build --build-dir . --dockerfile custom.Dockerfile
 ```
 
 ### Using Configuration Files
 
 Configuration files offer a structured and human-readable way to manage your application settings.
-The Workflow Engine supports JSON, YAML, and TOML formats, allowing you to choose the one that best fits your
+The Portage CD supports JSON, YAML, and TOML formats, allowing you to choose the one that best fits your
 preferences or existing infrastructure.
 
 - [JSON](https://www.json.org/json-en.html): A lightweight data-interchange format.
@@ -63,7 +63,7 @@ environment variable pointing to the file.
 
 ### Merging Configuration
 
-Workflow Engine merges configuration from different sources in the order of precedence mentioned above.
+Portage CD merges configuration from different sources in the order of precedence mentioned above.
 If the same configuration is specified in multiple places, the source with the highest precedence overrides the others.
 This mechanism allows for flexible configuration strategies, such as defining default values in a file and overriding
 them with environment variables or CLI arguments as needed.
@@ -93,7 +93,7 @@ Converts a configuration file from one format to another.
 Rendering a configuration template from `config.json.tmpl` to JSON format:
 
 ```shell
-$ cat config.json.tmpl | ./workflow-engine config render
+$ cat config.json.tmpl | ./portage config render
 ```
 
 **Output**:
@@ -110,7 +110,7 @@ $ cat config.json.tmpl | ./workflow-engine config render
 Attempting to convert the configuration without specifying required flags results in an error:
 
 ```shell
-$ cat config.json.tmpl | ./workflow-engine config render  | ./workflow-engine config convert
+$ cat config.json.tmpl | ./portage config render  | ./portage config convert
 ```
 
 **Error Output**:
@@ -122,7 +122,7 @@ Error: at least one of the flags in the group [file input] is required
 Successful conversion from JSON to TOML format:
 
 ```shell
-$ cat config.json.tmpl | ./workflow-engine config render  | ./workflow-engine config convert -i json -o toml
+$ cat config.json.tmpl | ./portage config render  | ./portage config convert -i json -o toml
 ```
 
 **Output**:

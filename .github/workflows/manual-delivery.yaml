@@ -35,21 +35,21 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}
+          tags: ghcr.io/easy-up/portage:${{ steps.vars.outputs.tag_name }}
           build-args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
 
       - name: Build and push podman target
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}
+          tags: ghcr.io/easy-up/portage:podman-${{ steps.vars.outputs.tag_name }}
           build-args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
-          target: workflow-engine-podman
+          target: portage-podman
 
       - name: job summary
         shell: bash
         run: |
           echo "## Docker Action Image Build and Push Summary" >> $GITHUB_STEP_SUMMARY
           echo ":white_check_mark: Docker Action Image Build and Push" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Docker CLI): ghcr.io/cms-enterprise/batcave/workflow-engine:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Podman CLI): ghcr.io/cms-enterprise/batcave/workflow-engine:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Docker CLI): ghcr.io/easy-up/portage:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Podman CLI): ghcr.io/easy-up/portage:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY

@@ -14,7 +14,7 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/workflow-engine
+  - main: ./cmd/portage
     env:
       - CGO_ENABLED=0
     goos:

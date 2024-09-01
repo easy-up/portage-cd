@@ -10,7 +10,7 @@ TODO: Add the philosophy behind the project layout
 
 ### Shell
 
-The Shell package (`pkg/shell`) is a library of commands and utilities used in workflow engine.
+The Shell package (`pkg/shell`) is a library of commands and utilities used in portage.
 The standard library way to execute shell commands is by using the `os/exec` package which has a lot of features and
 flexibility.
 In our case, we want to restrict the ability to arbitrarily execute shell commands by carefully selecting a sub-set of 
@@ -20,7 +20,7 @@ For example, if you look at the Syft CLI reference, you'll see dozens of command
 This is all controlled by flag parsing the string of the command.
 This is an opinionated security pipeline, so we don't need all the features Syft provides.
 The user shouldn't care that we're using Syft to generate an SBOM which is then scanned by Grype for vulnerabilities.
-The idea of Workflow Engine is that it's all abstracted to the Security Analysis pipeline.
+The idea of Portage CD is that it's all abstracted to the Security Analysis pipeline.
 
 In the Shell package, all necessary commands will be abstracted into a native Go object.
 Only the used features for the given command will be written into this package.
@@ -42,7 +42,7 @@ err := cmd.Run()
 ```
 
 There's also additional logic with the `os.exec` standard library command.
-Since workflow engine is built around executing external binaries, there is an internal library called the `pkg/shell`
+Since portage is built around executing external binaries, there is an internal library called the `pkg/shell`
 used to abstract a lot of the complexities involved with handling async patterns, possible interrupts, and parameters.
 
 Commands can be represented as functions.
@@ -118,15 +118,34 @@ See `pkg/shell/docker.go` for a more complex example of a command with a lot of 
 
 ### Concurrency
 
-[Workflow Engine PR #26](https://github.com/CMS-Enterprise/batcave-workflow-engine/pull/26)
+An AsyncTask is used to simplify concurrency by providing a few convenient methods.
 
-This PR contains a detailed explanation of the concurrency pattern used in the pipeline definitions.
+`StreamTo`: allows the caller to block and read the stderr log while the command is running.
+`Close`: Closes the internal pipe writer, signaling to the pipe reader that it is done writing data.
+`Wait`: can be called multiple times, it blocks until `Close()` is called on the task. Under the hood it uses a ctx.
+
+The general idea is that a "task" can be used in a goroutine in the background until the command is complete.
+This strategy enables a bunch of jobs to be kicked off in goroutines and stream stderr output in any order.
+
+The pattern used in the image-scan and code-scan pipelines uses methods with parameters than defines task to task
+dependencies.
+For example, grype cannot be run until syft runs and generates the SBOM, so the function for the grypeJob has a
+syftTask parameter so it can wait for the syft command to finish.
+
+For situations where the output of one command can be piped into another, there is a stdoutBuf field on AsyncTask
+that can be used to temporarily store the output in memory until the command is complete.
+
+Originally, io.Pipes were used here but it makes the logic of the command very complicated and not very readable even
+though it would technically be more efficient than storing in memory.
+
+The Async Task also wraps the stderr output with a label and timing capability, so the user can see how long each task
+takes to complete.
 
 ### Documentation
 
 ## Too Long; Might Read (TL;MR)
 
-A collection of thoughts around design decisions made in Workflow Engine, mostly ramblings that some people may or may 
+A collection of thoughts around design decisions made in Portage CD, mostly ramblings that some people may or may 
 not find useful.
 
 ### Why CI/CD Flexible Configuration is Painful

@@ -7,7 +7,7 @@
 1. [Overview](#overview)
 2. [Configuration](#configuration)
 3. [Rulesets](#rulesets)
-4. [Logging Semgrep with Workflow-engine](#logging-semgrep-with-workflow-engine)
+4. [Logging Semgrep with portage](#logging-semgrep-with-portage)
 5. [Handling False Positives & Problematic File(s)](#handling-false-positives--problematic-files)
 6. [Official Semgrep Documentation & Resources](#official-semgrep-documentation--resources)
 
@@ -37,11 +37,11 @@ or this when affixed with the `--semgrep-experimental` flag:
 osemgrep ci --json --experimental --config [semgrep-rule-config-file]
 ```
 ---
-### Semgrep with Workflow-engine Code-scan
+### Semgrep with portage Code-scan
 
 On the command line use the following with the necessary flags below in your git repo:
 
-      workflow-engine run code-scan [semgrep-flags]
+      portage run code-scan [semgrep-flags]
 
 #### Flags
 ---
@@ -50,7 +50,7 @@ Input Flag:
 
       --semgrep-rules string
       
-The input of a `.yaml`,`.toml`, or `.json` file with a ruleset Semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or workflow-engine config keys within wfe-config.yaml.](#env-variables)
+The input of a `.yaml`,`.toml`, or `.json` file with a ruleset Semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or portage config keys within wfe-config.yaml.](#env-variables)
 
 ---
 
@@ -58,7 +58,7 @@ Output Flag:
 
       --semgrep-filename string    
 
-The filename for Semgrep to output as a vulnerability report. More on the vulnerability reports [here.](#logging-semgrep-with-workflow-engine)
+The filename for Semgrep to output as a vulnerability report. More on the vulnerability reports [here.](#logging-semgrep-with-portage)
 
 ---
 
@@ -73,8 +73,8 @@ Use Semgrep's experimental features that are still in beta that have the potenti
 
 | Config Key                        | Environment Variable                 | Default Value                        | Description                                                                        |
 | --------------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
-| codescan.semgrepfilename          | WFE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
-| codescan.semgreprules             | WFE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
+| codescan.semgrepfilename          | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
+| codescan.semgreprules             | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
 
 ### Rulesets
 
@@ -121,15 +121,15 @@ Here below is a rule playground you can test writing your own semgrep rules:
 #### [Semgrep Rule Playground](https://semgrep.dev/editor)
 <iframe title="semgrep-playground" src="https://semgrep.dev/embed/editor?snippet=KPzL" width="100%" height="432" frameborder="0"></iframe>
 
-## Logging Semgrep with Workflow-engine
+## Logging Semgrep with portage
 
-Within workflow engine, `semgrep-sast-report.json` is the default value for a file that will be the output Semgrep it will appear in the artifacts directory if workflowengine is given read write permissions. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
+Within portage, `semgrep-sast-report.json` is the default value for a file that will be the output Semgrep it will appear in the artifacts directory if workflowengine is given read write permissions. As covered above in [configuration](#flags) using the flag `--semgrep-filename filename` will configure a custom file to output the semgrep-report to.
 
-Furthermore Semgrep when enabled via code-scan, `workflow-engine run code-scan -v` will output the Semgrep outputs with verbosity along with other code-scan tools.
+Furthermore Semgrep when enabled via code-scan, `portage run code-scan -v` will output the Semgrep outputs with verbosity along with other code-scan tools.
 
 The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
 
-Workflow engine uses [Gatecheck](https://github.com/gatecheckdev/gatecheck) to 'audit' the semgrep logs once Semgrep has finished. It does so by scanning for vulnerabilities defined by [Open Worldwide Application Security Project](https://owasp.org/) IDs. Workflow-engine reads STDERR, where other errors are gathered from `code-scan` tools, audits them via Gatecheck and outputs this audit to STDOUT. It also releases the logged output files into the `artifacts/` directory in your working directory.
+Workflow engine uses [Gatecheck](https://github.com/gatecheckdev/gatecheck) to 'audit' the semgrep logs once Semgrep has finished. It does so by scanning for vulnerabilities defined by [Open Worldwide Application Security Project](https://owasp.org/) IDs. portage reads STDERR, where other errors are gathered from `code-scan` tools, audits them via Gatecheck and outputs this audit to STDOUT. It also releases the logged output files into the `artifacts/` directory in your working directory.
 
 Ex.
 |            Check ID            |                           Owasp IDs                           |  Severity |  Impact |  link |
@@ -144,7 +144,7 @@ Semgrep is a rather simplistic tool that searches for vulnerabilities in your co
 
 ### False Positives
 
-You notice that Semgrep is screaming at you from the console in workflow-engine. You rage and rage as your terminal is just polluted with messages for a vulnerability you know is just a false positive.
+You notice that Semgrep is screaming at you from the console in portage. You rage and rage as your terminal is just polluted with messages for a vulnerability you know is just a false positive.
 
 #### Nosemgrep
 

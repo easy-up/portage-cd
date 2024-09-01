@@ -1,10 +1,7 @@
-# License
-
-As a work of the [United States government](https://www.usa.gov/), this project
-is in the public domain within the United States of America.
-
-Additionally, we waive copyright and related rights in the work worldwide
-through the CC0 1.0 Universal public domain dedication.
+Earlier versions of Portage CD, released under the name Portage CD, were
+made available in the public domain under the terms of the CC0 1.0 Universal
+license. Any unmodified files remain in the public domain, any new license terms
+or copyright notices notwithstanding.
 
 ## CC0 1.0 Universal Summary
 

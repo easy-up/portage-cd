@@ -1,21 +1,12 @@
 # Getting Started
 
-## Github Access
-
-You will need access to the https://github.com/nightwing-demo/workflow-engine repository. If you don't already have access you can contact the following Nightwing team members:
-
-- [Bacchus (BJ) Jackson](https://cmsgov.slack.com/team/U02THSF1F3N) ([email](bacchus.jackson@cms.hhs.gov))
-- [Danielle (Danni) Smith](https://cmsgov.slack.com/team/U02LU9ECMSM) ([email](danielle.smith@cms.hhs.gov))
-
-to get access.
-
 ## Required Tools
 
-The following are required tools for running the Nightwing Workflow Engine
+The following are required tools for building and running Portage
 
 ### Go
 
-The Nightwing Workflow Engine is written in [Go](https://go.dev).
+The Portage CD is written in [Go](https://go.dev).
 
 To install on a Mac, install using Homebrew:
 

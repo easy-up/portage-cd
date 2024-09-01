@@ -2,7 +2,7 @@ package cli
 
 import (
 	"log/slog"
-	"workflow-engine/pkg/settings"
+	"portage/pkg/settings"
 
 	"github.com/spf13/cobra"
 )
@@ -13,18 +13,18 @@ var (
 	config      *settings.Config     = settings.NewConfig()
 )
 
-func NewWorkflowEngineCommand() *cobra.Command {
-	workflowEngineCmd.PersistentFlags().BoolP("verbose", "v", false, "set logging level to debug")
-	workflowEngineCmd.PersistentFlags().BoolP("silent", "s", false, "set logging level to error")
+func NewPortageCommand() *cobra.Command {
+	portageCmd.PersistentFlags().BoolP("verbose", "v", false, "set logging level to debug")
+	portageCmd.PersistentFlags().BoolP("silent", "s", false, "set logging level to error")
 
-	workflowEngineCmd.SilenceUsage = true
+	portageCmd.SilenceUsage = true
 
-	workflowEngineCmd.AddCommand(newRunTaskCommand())
-	return workflowEngineCmd
+	portageCmd.AddCommand(newRunTaskCommand())
+	return portageCmd
 }
 
-var workflowEngineCmd = &cobra.Command{
-	Use:   "workflow-engine",
+var portageCmd = &cobra.Command{
+	Use:   "portage",
 	Short: "A portable, opinionated security pipeline",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		verboseFlag, _ := cmd.Flags().GetBool("verbose")

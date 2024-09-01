@@ -2,7 +2,7 @@ package cli
 
 import (
 	"io"
-	"workflow-engine/pkg/pipelines"
+	"portage/pkg/pipelines"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -99,11 +99,11 @@ func newRunCommand() *cobra.Command {
 
 	// Persistent Flags, available on all sub commands
 	cmd.PersistentFlags().BoolP("dry-run", "n", false, "log commands to debug but don't execute")
-	cmd.PersistentFlags().StringP("config", "f", "", "workflow engine config file in json, yaml, or toml")
+	cmd.PersistentFlags().StringP("config", "f", "", "portage config file in json, yaml, or toml")
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 	cmd.PersistentFlags().String("artifact-dir", "", "the target output directory for security report artifacts")
 	cmd.PersistentFlags().String("tag", "", "the target image tag (ex. alpine:latest)")
-	// cmd.PersistentFlags().String("template", "t", "", "workflow engine config template that will be auto rendered")
+	// cmd.PersistentFlags().String("template", "t", "", "portage config template that will be auto rendered")
 
 	// necessary for the persistent flags
 	_ = viper.BindPFlag("artifactdir", cmd.PersistentFlags().Lookup("artifact-dir"))

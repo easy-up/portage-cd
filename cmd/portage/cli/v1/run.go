@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"workflow-engine/pkg/settings"
+	"portage/pkg/settings"
 
 	"github.com/spf13/cobra"
 )

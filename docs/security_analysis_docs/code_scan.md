@@ -7,7 +7,7 @@ lorem ipsum stuff
 
 ### Using Code-scan On CLI
 
-    workflow-engine run code-scan [flags]
+    portage run code-scan [flags]
 
 ### Flags
 

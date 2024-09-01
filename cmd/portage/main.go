@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	cli "portage/cmd/portage/cli/v0"
+	cliv1 "portage/cmd/portage/cli/v1"
 	"runtime"
 	"time"
-	"workflow-engine/cmd/workflow-engine/cli/v0"
-	cliv1 "workflow-engine/cmd/workflow-engine/cli/v1"
 
 	"github.com/lmittmann/tint"
 )
@@ -41,7 +41,7 @@ func runCLIv1() int {
 		TimeFormat: time.TimeOnly,
 	})))
 
-	cmd := cliv1.NewWorkflowEngineCommand()
+	cmd := cliv1.NewPortageCommand()
 
 	start := time.Now()
 	slog.Debug("execute command")
@@ -78,7 +78,7 @@ func runCLIv0() int {
 		Compiler:       runtime.Compiler,
 	}
 
-	cmd := cli.NewWorkflowEngineCommand()
+	cmd := cli.NewPortageCommand()
 	start := time.Now()
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "------------")

@@ -7,7 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"strings"
-	"workflow-engine/pkg/pipelines"
+	"portage/pkg/pipelines"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"

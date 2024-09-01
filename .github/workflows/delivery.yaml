@@ -1,5 +1,5 @@
-name: Build workflow-engine
-run-name: "Build & Scan Workflow Engine Images"
+name: Build portage
+run-name: "Build & Scan Portage CD Images"
 on:
   workflow_dispatch:
   pull_request:
@@ -27,7 +27,7 @@ jobs:
     - name: Set outputs
       id: vars
       run: |
-        image_repo=ghcr.io/cms-enterprise/batcave/workflow-engine
+        image_repo=ghcr.io/easy-up/portage
         image_tag=${GITHUB_SHA::8}
         # If on a git tag like vx.x.x, change the image tag to reflect
         if [[ $GITHUB_REF == refs/tags/v* ]]; then
@@ -54,10 +54,10 @@ jobs:
         push: true
         tags: ${{ steps.vars.outputs.podman_image_name }}
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
-        target: workflow-engine-podman
+        target: portage-podman
 
-    - name: Run Workflow Engine Scans
-      uses: cms-enterprise/batcave-workflow-engine-action/image-build-scan-publish/docker@main
+    - name: Run Portage CD Scans
+      uses: easy-up/portage-cd-action/image-build-scan-publish/docker@main
       with:
         image_build_enabled: false
         image_publish_enabled: false

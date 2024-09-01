@@ -2,15 +2,15 @@ package pipelines
 
 import (
 	"fmt"
+	"github.com/go-git/go-git/v5"
+	"gopkg.in/yaml.v3"
 	"html/template"
 	"io"
 	"log/slog"
 	"slices"
 	"strings"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
 )
 
 // Config contains all parameters for the various pipelines
@@ -78,15 +78,15 @@ type metaConfigField struct {
 var metaConfig = []metaConfigField{
 	{
 		Key:             "config",
-		Env:             "WFE_CONFIG",
+		Env:             "PORTAGE_CONFIG",
 		ActionInputName: "config_file",
 		ActionType:      "String",
 		Default:         nil,
-		Description:     "The path to a config file to use when executing workflow-engine",
+		Description:     "The path to a config file to use when executing portage",
 	},
 	{
 		Key:             "imagetag",
-		Env:             "WFE_IMAGE_TAG",
+		Env:             "PORTAGE_IMAGE_TAG",
 		ActionInputName: "tag",
 		ActionType:      "String",
 		Default:         "my-app:latest",
@@ -95,7 +95,7 @@ var metaConfig = []metaConfigField{
 
 	{
 		Key:             "artifactdir",
-		Env:             "WFE_ARTIFACT_DIR",
+		Env:             "PORTAGE_ARTIFACT_DIR",
 		ActionInputName: "artifact_dir",
 		ActionType:      "String",
 		Default:         "artifacts",
@@ -103,7 +103,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "gatecheckbundlefilename",
-		Env:             "WFE_GATECHECK_BUNDLE_FILENAME",
+		Env:             "PORTAGE_GATECHECK_BUNDLE_FILENAME",
 		ActionInputName: "gatecheck_bundle_filename",
 		ActionType:      "String",
 		Default:         "gatecheck-bundle.tar.gz",
@@ -112,7 +112,7 @@ var metaConfig = []metaConfigField{
 
 	{
 		Key:             "imagebuild.enabled",
-		Env:             "WFE_IMAGE_BUILD_ENABLED",
+		Env:             "PORTAGE_IMAGE_BUILD_ENABLED",
 		ActionInputName: "image_build_enabled",
 		ActionType:      "Bool",
 		Default:         true,
@@ -120,7 +120,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.builddir",
-		Env:             "WFE_IMAGE_BUILD_DIR",
+		Env:             "PORTAGE_IMAGE_BUILD_DIR",
 		ActionInputName: "build_dir",
 		ActionType:      "String",
 		Default:         ".",
@@ -128,7 +128,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.dockerfile",
-		Env:             "WFE_IMAGE_BUILD_DOCKERFILE",
+		Env:             "PORTAGE_IMAGE_BUILD_DOCKERFILE",
 		ActionInputName: "dockerfile",
 		ActionType:      "String",
 		Default:         "Dockerfile",
@@ -136,7 +136,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.platform",
-		Env:             "WFE_IMAGE_BUILD_PLATFORM",
+		Env:             "PORTAGE_IMAGE_BUILD_PLATFORM",
 		ActionInputName: "platform",
 		ActionType:      "String",
 		Default:         nil,
@@ -144,7 +144,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.target",
-		Env:             "WFE_IMAGE_BUILD_TARGET",
+		Env:             "PORTAGE_IMAGE_BUILD_TARGET",
 		ActionInputName: "target",
 		ActionType:      "String",
 		Default:         nil,
@@ -152,7 +152,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.cacheto",
-		Env:             "WFE_IMAGE_BUILD_CACHE_TO",
+		Env:             "PORTAGE_IMAGE_BUILD_CACHE_TO",
 		ActionInputName: "cache_to",
 		ActionType:      "String",
 		Default:         nil,
@@ -160,7 +160,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.cachefrom",
-		Env:             "WFE_IMAGE_BUILD_CACHE_FROM",
+		Env:             "PORTAGE_IMAGE_BUILD_CACHE_FROM",
 		ActionInputName: "cache_from",
 		ActionType:      "String",
 		Default:         nil,
@@ -168,7 +168,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.squashlayers",
-		Env:             "WFE_IMAGE_BUILD_SQUASH_LAYERS",
+		Env:             "PORTAGE_IMAGE_BUILD_SQUASH_LAYERS",
 		ActionInputName: "squash_layers",
 		ActionType:      "Bool",
 		Default:         false,
@@ -176,7 +176,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagebuild.args",
-		Env:             "WFE_IMAGE_BUILD_ARGS",
+		Env:             "PORTAGE_IMAGE_BUILD_ARGS",
 		ActionInputName: "build_args",
 		ActionType:      "List",
 		Default:         nil,
@@ -184,7 +184,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagescan.enabled",
-		Env:             "WFE_IMAGE_SCAN_ENABLED",
+		Env:             "PORTAGE_IMAGE_SCAN_ENABLED",
 		Default:         true,
 		ActionInputName: "image_scan_enabled",
 		ActionType:      "Bool",
@@ -192,7 +192,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagescan.syftfilename",
-		Env:             "WFE_IMAGE_SCAN_SYFT_FILENAME",
+		Env:             "PORTAGE_IMAGE_SCAN_SYFT_FILENAME",
 		ActionInputName: "syft_filename",
 		ActionType:      "String",
 		Default:         "syft-sbom-report.json",
@@ -200,7 +200,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagescan.grypeconfigfilename",
-		Env:             "WFE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME",
+		Env:             "PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME",
 		ActionInputName: "grype_config_filename",
 		ActionType:      "String",
 		Default:         nil,
@@ -208,7 +208,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagescan.grypefilename",
-		Env:             "WFE_IMAGE_SCAN_GRYPE_FILENAME",
+		Env:             "PORTAGE_IMAGE_SCAN_GRYPE_FILENAME",
 		ActionInputName: "grype_filename",
 		ActionType:      "String",
 		Default:         "grype-vulnerability-report-full.json",
@@ -216,7 +216,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagescan.clamavfilename",
-		Env:             "WFE_IMAGE_SCAN_CLAMAV_FILENAME",
+		Env:             "PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME",
 		ActionInputName: "clamav_filename",
 		ActionType:      "String",
 		Default:         "clamav-virus-report.txt",
@@ -225,7 +225,7 @@ var metaConfig = []metaConfigField{
 
 	{
 		Key:             "codescan.enabled",
-		Env:             "WFE_CODE_SCAN_ENABLED",
+		Env:             "PORTAGE_CODE_SCAN_ENABLED",
 		ActionInputName: "code_scan_enabled",
 		ActionType:      "Bool",
 		Default:         true,
@@ -233,7 +233,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "codescan.gitleaksfilename",
-		Env:             "WFE_CODE_SCAN_GITLEAKS_FILENAME",
+		Env:             "PORTAGE_CODE_SCAN_GITLEAKS_FILENAME",
 		ActionInputName: "gitleaks_filename",
 		ActionType:      "String",
 		Default:         "gitleaks-secrets-report.json",
@@ -241,7 +241,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "codescan.gitleakssrcdir",
-		Env:             "WFE_CODE_SCAN_GITLEAKS_SRC_DIR",
+		Env:             "PORTAGE_CODE_SCAN_GITLEAKS_SRC_DIR",
 		ActionInputName: "gitleaks_src_dir",
 		ActionType:      "String",
 		Default:         ".",
@@ -249,7 +249,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "codescan.semgrepfilename",
-		Env:             "WFE_CODE_SCAN_SEMGREP_FILENAME",
+		Env:             "PORTAGE_CODE_SCAN_SEMGREP_FILENAME",
 		ActionInputName: "semgrep_filename",
 		ActionType:      "String",
 		Default:         "semgrep-sast-report.json",
@@ -257,7 +257,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "codescan.semgreprules",
-		Env:             "WFE_CODE_SCAN_SEMGREP_RULES",
+		Env:             "PORTAGE_CODE_SCAN_SEMGREP_RULES",
 		ActionInputName: "semgrep_rules",
 		ActionType:      "String",
 		Default:         "p/default",
@@ -266,7 +266,7 @@ var metaConfig = []metaConfigField{
 
 	{
 		Key:             "imagepublish.enabled",
-		Env:             "WFE_IMAGE_PUBLISH_ENABLED",
+		Env:             "PORTAGE_IMAGE_PUBLISH_ENABLED",
 		ActionInputName: "image_publish_enabled",
 		ActionType:      "Bool",
 		Default:         true,
@@ -274,7 +274,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagepublish.bundlepublishenabled",
-		Env:             "WFE_IMAGE_BUNDLE_PUBLISH_ENABLED",
+		Env:             "PORTAGE_IMAGE_BUNDLE_PUBLISH_ENABLED",
 		ActionInputName: "bundle_publish_enabled",
 		ActionType:      "Bool",
 		Default:         true,
@@ -282,7 +282,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "imagepublish.bundletag",
-		Env:             "WFE_IMAGE_PUBLISH_BUNDLE_TAG",
+		Env:             "PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG",
 		ActionInputName: "bundle_publish_tag",
 		ActionType:      "String",
 		Default:         "my-app/artifact-bundle:latest",
@@ -291,7 +291,7 @@ var metaConfig = []metaConfigField{
 
 	{
 		Key:             "deploy.enabled",
-		Env:             "WFE_DEPLOY_ENABLED",
+		Env:             "PORTAGE_DEPLOY_ENABLED",
 		ActionInputName: "deploy_enabled",
 		ActionType:      "Bool",
 		Default:         true,
@@ -299,7 +299,7 @@ var metaConfig = []metaConfigField{
 	},
 	{
 		Key:             "deploy.gatecheckconfigfilename",
-		Env:             "WFE_DEPLOY_GATECHECK_CONFIG_FILENAME",
+		Env:             "PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME",
 		ActionInputName: "gatecheck_config_filename",
 		ActionType:      "String",
 		Default:         nil,
@@ -381,7 +381,7 @@ type actionRunsConfig struct {
 
 func WriteGithubActionAll(dst io.Writer, image string, additionalInputs []string) error {
 	action := githubAction{
-		Name:        "Workflow Engine",
+		Name:        "Portage CD",
 		Description: "Code Scan + Image Build + Image Scan + Image Publish + Validation",
 		Inputs:      map[string]actionInputField{},
 		Runs: actionRunsConfig{
@@ -415,7 +415,7 @@ func RenderTemplate(dst io.Writer, templateSrc io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("template rendering failed: could not load built-in values: %w", err)
 	}
-	tmpl := template.New("workflow-engine config")
+	tmpl := template.New("portage config")
 
 	content, err := io.ReadAll(templateSrc)
 	if err != nil {

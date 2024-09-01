@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"path"
 	"strings"
-	"workflow-engine/pkg/shell"
+	"portage/pkg/shell"
 )
 
 type ImagePublish struct {

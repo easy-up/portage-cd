@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"workflow-engine/pkg/shell"
+	"portage/pkg/shell"
 )
 
 type CodeScan struct {
@@ -87,7 +87,7 @@ func (p *CodeScan) Run() error {
 		return fmt.Errorf("Code Scan Pipeline Pre-Run Failed: %v", err)
 	}
 
-	fmt.Fprintln(p.Stdout, "******* Workflow Engine Code Scan Pipeline [Run] *******")
+	fmt.Fprintln(p.Stdout, "******* Portage CD Code Scan Pipeline [Run] *******")
 
 	// Create async tasks
 	semgrepTask := NewAsyncTask("semgrep")

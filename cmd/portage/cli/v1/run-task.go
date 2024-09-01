@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path"
-	"workflow-engine/pkg/settings"
-	"workflow-engine/pkg/tasks"
+	"portage/pkg/settings"
+	"portage/pkg/tasks"
 
 	"github.com/spf13/cobra"
 )

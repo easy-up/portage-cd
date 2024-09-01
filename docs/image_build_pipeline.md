@@ -6,7 +6,7 @@
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--build-dir`        | `WFE_BUILD_DIR`           | `image.buildDir`             |
+| `--build-dir`        | `PORTAGE_BUILD_DIR`           | `image.buildDir`             |
 
 The directory from which to build the container (typically, but not always, the directory where the Dockerfile is located). This parameter is optional, expects a string value, and defaults to the current working directory.
 
@@ -14,13 +14,13 @@ The directory from which to build the container (typically, but not always, the 
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--dockerfile`       | `WFE_BUILD_DOCKERFILE`    | `image.buildDockerfile`      |
+| `--dockerfile`       | `PORTAGE_BUILD_DOCKERFILE`    | `image.buildDockerfile`      |
 
 ### Build Args
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--build-arg`        | `WFE_BUILD_ARGS`          | `image.buildArgs`            |
+| `--build-arg`        | `PORTAGE_BUILD_ARGS`          | `image.buildArgs`            |
 
 Defines [build arguments](https://docs.docker.com/build/guide/build-args/) that are passed to the actual container image build command. This parameter is optional, and expects a mapping of string keys to string values, the exact format of which depends on the medium by which it is specified.
 
@@ -30,7 +30,7 @@ The `--build-arg` flag can be specified multiple times to specify different args
 
 #### Environment Variable
 
-The `WFE_BUILD_ARGS` environment variable must contain all the build arguments in a JSON formatted object (i.e. `{"key":"value"}`).
+The `PORTAGE_BUILD_ARGS` environment variable must contain all the build arguments in a JSON formatted object (i.e. `{"key":"value"}`).
 
 #### Configuration File
 
@@ -52,25 +52,25 @@ Note that when specifying build args via the configuration file, special care mu
 }
 ```
 
-This is because the workflow-engine configuration file loader does not preserve the case of keys, and build args in Dockerfiles are case sensitive.
+This is because the portage configuration file loader does not preserve the case of keys, and build args in Dockerfiles are case sensitive.
 
 ### Tag
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--tag`              | `WFE_BUILD_TAG`           | `image.buildTag`             |
+| `--tag`              | `PORTAGE_BUILD_TAG`           | `image.buildTag`             |
 
 ### Platform
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--platform`         | `WFE_BUILD_PLATFORM`      | `image.buildPlatform`        |
+| `--platform`         | `PORTAGE_BUILD_PLATFORM`      | `image.buildPlatform`        |
 
 ### Target
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--target`           | `WFE_BUILD_TARGET`        | `image.buildTarget`          |
+| `--target`           | `PORTAGE_BUILD_TARGET`        | `image.buildTarget`          |
 
 For [multi-stage Dockerfiles](https://docs.docker.com/build/building/multi-stage/) this parameter specifies a named stage to build.
 
@@ -78,16 +78,16 @@ For [multi-stage Dockerfiles](https://docs.docker.com/build/building/multi-stage
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--cache-to`         | `WFE_BUILD_CACHE_TO`      | `image.buildCacheTo`         |
+| `--cache-to`         | `PORTAGE_BUILD_CACHE_TO`      | `image.buildCacheTo`         |
 
 ### Cache From
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--cache-from`       | `WFE_BUILD_CACHE_FROM`    | `image.buildCacheFrom`       |
+| `--cache-from`       | `PORTAGE_BUILD_CACHE_FROM`    | `image.buildCacheFrom`       |
 
 ### Squash Layers
 
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
-| `--squash-layers`    | `WFE_BUILD_SQUASH_LAYERS` | `image.buildSquashLayers`    |
+| `--squash-layers`    | `PORTAGE_BUILD_SQUASH_LAYERS` | `image.buildSquashLayers`    |

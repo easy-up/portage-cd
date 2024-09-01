@@ -4,7 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"workflow-engine/pkg/pipelines"
+	"portage/pkg/pipelines"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -40,7 +40,7 @@ func newConfigCommand() *cobra.Command {
 	generateActionsTableCmd.Flags().StringSlice("input", make([]string, 0), "Additional input(s) to make available as environment variables (format: \"input:variable:default:description\")")
 
 	// config
-	cmd := &cobra.Command{Use: "config", Short: "manage the workflow engine config file"}
+	cmd := &cobra.Command{Use: "config", Short: "manage the portage config file"}
 
 	// add sub commands
 	cmd.AddCommand(infoCmd, initCmd, varsCmd, renderCmd, convertCmd, generateActionCmd, generateTableCmd, generateActionsTableCmd)

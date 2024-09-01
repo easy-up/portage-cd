@@ -2,7 +2,7 @@ package cli
 
 import (
 	"log/slog"
-	"workflow-engine/pkg/pipelines"
+	"portage/pkg/pipelines"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -13,13 +13,13 @@ var (
 	AppLogLever *slog.LevelVar
 )
 
-func NewWorkflowEngineCommand() *cobra.Command {
-	viper.SetConfigName("workflow-engine")
+func NewPortageCommand() *cobra.Command {
+	viper.SetConfigName("portage")
 	pipelines.BindViper(viper.GetViper())
 
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{
-		Use:              "workflow-engine",
+		Use:              "portage",
 		Short:            "A portable, opinionated security pipeline",
 		PersistentPreRun: runCheckLoggingFlags,
 	}
@@ -51,7 +51,7 @@ func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
 	}
 }
 
-// workflow-engine version
+// portage version
 func runVersion(cmd *cobra.Command, args []string) error {
 	versionFlag, _ := cmd.Flags().GetBool("version")
 	switch {

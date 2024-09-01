@@ -9,9 +9,9 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"portage/pkg/shell"
 	"strings"
 	"time"
-	"workflow-engine/pkg/shell"
 )
 
 // ImageScan Pipeline
@@ -56,7 +56,7 @@ func NewImageScan(stdout io.Writer, stderr io.Writer) *ImageScan {
 }
 
 func (p *ImageScan) preRun() error {
-	fmt.Fprintln(p.Stdout, "******* Workflow Engine Image Scan Pipeline [Pre-Run] *******")
+	fmt.Fprintln(p.Stdout, "******* Portage CD Image Scan Pipeline [Pre-Run] *******")
 	var err error
 
 	// In Memory Buffer
@@ -130,7 +130,7 @@ func (p *ImageScan) Run() error {
 		return fmt.Errorf("Image Scan Pipeline Pre-Run Failed: %v", err)
 	}
 
-	fmt.Fprintln(p.Stdout, "******* Workflow Engine Image Scan Pipeline [Run] *******")
+	fmt.Fprintln(p.Stdout, "******* Portage CD Image Scan Pipeline [Run] *******")
 
 	// Create async tasks
 	freshclamTask := NewAsyncTask("freshclam")
