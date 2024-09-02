@@ -23,9 +23,9 @@ func SemgrepVersion(options ...OptionFunc) error {
 // Output: JSON report to STDOUT
 func SemgrepScan(options ...OptionFunc) error {
 	o := newOptions(options...)
-	exe := exec.Command("semgrep", "ci", "--json", "--config", o.semgrep.rules)
+	exe := exec.Command("semgrep", "scan", "--json", "--config", o.semgrep.rules)
 	if o.semgrep.experimental {
-		exe = exec.Command("osemgrep", "ci", "--json", "--experimental", "--config", o.semgrep.rules)
+		exe = exec.Command("osemgrep", "scan", "--json", "--experimental", "--config", o.semgrep.rules)
 	}
 	return run(exe, o)
 }

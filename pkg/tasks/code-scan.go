@@ -88,9 +88,9 @@ func (t *SemgrepCodeScanTask) Run(ctx context.Context, dstStderr io.Writer) erro
 		return err
 	}
 
-	semgrepCmd := exec.CommandContext(ctx, "semgrep", "ci", "--json", "--config", t.opts.SemgrepRules)
+	semgrepCmd := exec.CommandContext(ctx, "semgrep", "scan", "--json", "--config", t.opts.SemgrepRules)
 	if t.opts.SemgrepExperimental {
-		semgrepCmd = exec.CommandContext(ctx, "osemgrep", "ci", "--json", "--experimental", "--config", t.opts.SemgrepRules)
+		semgrepCmd = exec.CommandContext(ctx, "osemgrep", "scan", "--json", "--experimental", "--config", t.opts.SemgrepRules)
 	}
 	semgrepCmd.Stdout = t.semgrepFile
 	err := StreamStderr(semgrepCmd, dstStderr, "semgrep code scan")
