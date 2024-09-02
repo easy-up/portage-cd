@@ -61,7 +61,7 @@ jobs:
         target: portage-podman
 
     - name: Run Portage CD Scans
-      uses: easy-up/portage-cd-action/image-build-scan-publish/docker@main
+      uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@main
       with:
         image_build_enabled: false
         image_publish_enabled: false
