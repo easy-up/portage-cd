@@ -1,4 +1,5 @@
 INSTALL_DIR := env('INSTALL_DIR', '/usr/local/bin')
+IMAGE_NAME := "ghcr.io/easy-up/portage"
 
 # build portage binary
 build-exp:
@@ -13,6 +14,13 @@ install-exp: build-exp
 build:
     mkdir -p bin
     go build -ldflags="-X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B)'" -o ./bin ./cmd/portage
+
+# build docker image for local use
+docker-build-local:
+    if ! git diff-index --quiet HEAD; then \
+      echo "WARNING: uncommitted changes incorporated into local docker image" >&2; \
+    fi
+    docker build . --build-arg VERSION=local-$(git show --no-patch HEAD --format='%h') --build-arg GIT_COMMIT=$(git rev-parse HEAD) --build-arg GIT_DESCRIPTION="$(git show --no-patch HEAD --format='%s')" -t "{{IMAGE_NAME}}:local-$(git show --no-patch HEAD --format='%h')"
 
 # build and install binary
 install: build
@@ -33,4 +41,4 @@ upgrade:
 
 # Locally serve documentation
 serve-docs:
-	mdbook serve
+  mdbook serve
