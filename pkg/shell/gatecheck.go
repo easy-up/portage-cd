@@ -34,7 +34,7 @@ func GatecheckList(options ...OptionFunc) error {
 // Output: table to STDOUT
 func GatecheckListAll(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "list", "--all", "--input-type", o.reportType)
+	cmd := exec.Command("gatecheck", "list", "--input-type", o.reportType)
 	return run(cmd, o)
 }
 
