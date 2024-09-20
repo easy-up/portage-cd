@@ -19,6 +19,15 @@ Install Prerequisites:
 - Golang >= v1.22.0
 - [Just](https://github.com/casey/just?tab=readme-ov-file#installation) (optional)
 
+Prerequisite Tools (For running `portage` local)
+
+- Gitleaks
+- Semgrep
+- Syft
+- Grype
+- ClamAV (only the `clamscan` and `freshclam` cli utilities are needed)
+- ORAS
+
 ## Compiling Portage CD
 
 Running the just recipe will put the compiled-binary into `./bin`
@@ -36,7 +45,7 @@ mkdir bin
 go build -o bin/portage ./cmd/portage
 ```
 
-Optionally, if you care to include metadata you use build arguments
+Optionally, if you care to include metadata about the version of `portage` (displayed when you run `portage version`), use the following build arguments
 
 ```shell
 go build -ldflags="-X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B)'" -o ./bin ./cmd/portage
