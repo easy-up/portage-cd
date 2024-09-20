@@ -4,6 +4,6 @@ bin
 test/.artifacts
 test/artifacts
 artifacts
-
+libpod/
 
 dist/
