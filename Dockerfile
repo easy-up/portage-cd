@@ -134,6 +134,7 @@ VOLUME /home/podman/.local/share/containers
 
 RUN mkdir -p /var/lib/clamav
 RUN chown podman /var/lib/clamav && chown podman /etc/clamav
+RUN chmod g+w /var/lib/clamav
 
 LABEL org.opencontainers.image.title="portage-podman"
 
