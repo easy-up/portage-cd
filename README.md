@@ -98,8 +98,7 @@ Note: `(none)` means unset, left blank
 | imagebuild.platform               | PORTAGE_IMAGE_BUILD_PLATFORM             | -                                    | The target platform for build                                                      |
 | imagebuild.squashlayers           | PORTAGE_IMAGE_BUILD_SQUASH_LAYERS        | 0                                    | squash image layers - Only Supported with Podman CLI                               |
 | imagebuild.target                 | PORTAGE_IMAGE_BUILD_TARGET               | -                                    | The target build stage to build (e.g., [linux/amd64])                              |
-| imagepublish.bundlepublishenabled | PORTAGE_IMAGE_BUNDLE_PUBLISH_ENABLED     | 1                                    | Enable/Disable gatecheck artifact bundle publish task                              |
-| imagepublish.bundletag            | PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG         | my-app/artifact-bundle:latest        | The full image tag for the target gatecheck bundle image blob                      |
+| imagepublish.bundletag            | PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG         |                                      | The full image tag for the target gatecheck bundle image blob                      |
 | imagepublish.enabled              | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the image publish pipeline                                          |
 | imagescan.clamavfilename          | PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
 | imagescan.enabled                 | PORTAGE_IMAGE_SCAN_ENABLED               | 1                                    | Enable/Disable the image scan pipeline                                             |

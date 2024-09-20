@@ -26,7 +26,6 @@ codeScan:
     semgrepRules: p/default
 imagePublish:
     enabled: true
-    bundlePublishEnabled: true
     bundleTag: my-app/artifact-bundle:latest
 deploy:
     enabled: true

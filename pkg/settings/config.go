@@ -55,9 +55,8 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled              bool   `mapstructure:"enabled"              metafield:"ImagePublishEnabled"`
-	BundlePublishEnabled bool   `mapstructure:"bundlePublishEnabled" metafield:"ImagePublishBundleEnabled"`
-	BundleTag            string `mapstructure:"bundleTag"            metafield:"ImagePublishBundleTag"`
+	Enabled   bool   `mapstructure:"enabled"              metafield:"ImagePublishEnabled"`
+	BundleTag string `mapstructure:"bundleTag"            metafield:"ImagePublishBundleTag"`
 }
 
 type configValidation struct {
@@ -92,7 +91,6 @@ type MetaConfig struct {
 	CodeScanSnykFilename              MetaField
 	CodeScanSnykSrcDir                MetaField
 	ImagePublishEnabled               MetaField
-	ImagePublishBundleEnabled         MetaField
 	ImagePublishBundleTag             MetaField
 	ValidationEnabled                 MetaField
 	ValidationGatecheckConfigFilename MetaField
@@ -443,17 +441,6 @@ func NewMetaConfig() *MetaConfig {
 			stringDecoder:   stringToBoolDecoder,
 			cobraFunc:       boolVarCobraFunc,
 		},
-		ImagePublishBundleEnabled: MetaField{
-			FlagValueP:      new(bool),
-			FlagName:        "enabled",
-			FlagDesc:        "Enable/Disable gatecheck artifact bundle publish task",
-			EnvKey:          "PORTAGE_IMAGE_BUNDLE_PUBLISH_ENABLED",
-			ActionInputName: "bundle_publish_enabled",
-			ActionType:      "Bool",
-			DefaultValue:    "true",
-			stringDecoder:   stringToBoolDecoder,
-			cobraFunc:       boolVarCobraFunc,
-		},
 		ImagePublishBundleTag: MetaField{
 			FlagValueP:      new(string),
 			FlagName:        "bundle-tag",
@@ -461,7 +448,7 @@ func NewMetaConfig() *MetaConfig {
 			EnvKey:          "PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG",
 			ActionInputName: "bundle_publish_tag",
 			ActionType:      "String",
-			DefaultValue:    "my-app/artifact-bundle:latest",
+			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
 			cobraFunc:       stringVarCobraFunc,
 		},

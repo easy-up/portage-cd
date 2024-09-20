@@ -55,9 +55,8 @@ type configCodeScan struct {
 }
 
 type configImagePublish struct {
-	Enabled              bool   `mapstructure:"enabled"`
-	BundlePublishEnabled bool   `mapstructure:"bundlePublishEnabled"`
-	BundleTag            string `mapstructure:"bundleTag"`
+	Enabled   bool   `mapstructure:"enabled"`
+	BundleTag string `mapstructure:"bundleTag"`
 }
 
 type configDeploy struct {
@@ -273,19 +272,11 @@ var metaConfig = []metaConfigField{
 		Description:     "Enable/Disable the image publish pipeline",
 	},
 	{
-		Key:             "imagepublish.bundlepublishenabled",
-		Env:             "PORTAGE_IMAGE_BUNDLE_PUBLISH_ENABLED",
-		ActionInputName: "bundle_publish_enabled",
-		ActionType:      "Bool",
-		Default:         true,
-		Description:     "Enable/Disable gatecheck artifact bundle publish task",
-	},
-	{
 		Key:             "imagepublish.bundletag",
 		Env:             "PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG",
 		ActionInputName: "bundle_publish_tag",
 		ActionType:      "String",
-		Default:         "my-app/artifact-bundle:latest",
+		Default:         "",
 		Description:     "The full image tag for the target gatecheck bundle image blob",
 	},
 
@@ -322,7 +313,6 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"codescan.semgreprules",
 		"imagepublish.enabled",
 		"imagepublish.bundletag",
-		"imagepublish.bundlepublishenabled",
 		"deploy.enabled",
 	}
 	fields := make([]metaConfigField, 0)

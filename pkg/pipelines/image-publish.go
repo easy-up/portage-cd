@@ -5,8 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"path"
-	"strings"
 	"portage/pkg/shell"
+	"strings"
 )
 
 type ImagePublish struct {
@@ -33,7 +33,7 @@ func NewimagePublish(stdout io.Writer, stderr io.Writer) *ImagePublish {
 
 func (p *ImagePublish) Run() error {
 	if !p.config.ImagePublish.Enabled {
-		slog.Warn("image publish pipeline is disabled, skip.")
+		slog.Warn("image publish pipeline is disabled, skipping.")
 		return nil
 	}
 
@@ -57,14 +57,9 @@ func (p *ImagePublish) Run() error {
 		return errors.New("Image Publish Pipeline failed.")
 	}
 
-	if !p.config.ImagePublish.BundlePublishEnabled {
-		slog.Warn("bundle image publish is disabled, skip")
-		return nil
-
-	}
-
 	if p.config.ImagePublish.BundleTag == "" {
-		return errors.New("Image Publish Pipeline failed: no artifact image defined for image publish")
+		slog.Info("artifact bundle image publish is disabled, skipping")
+		return nil
 	}
 
 	bundleFilename := path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
