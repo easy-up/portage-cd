@@ -100,8 +100,9 @@ COPY --from=build-semgrep-core /src/semgrep/_build/default/src/main/Main.exe /us
 
 COPY --from=build /app/bin/portage /usr/local/bin/portage
 
-# enable the Gatecheck beta CLI
-ENV GATECHECK_FF_CLI_V1_ENABLED=1
+WORKDIR /app
+
+ENV PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL="true"
 
 ENTRYPOINT ["portage"]
 

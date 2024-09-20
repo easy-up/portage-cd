@@ -71,10 +71,11 @@ Use Semgrep's experimental features that are still in beta that have the potenti
 ---
 #### Env Variables
 
-| Config Key                        | Environment Variable                 | Default Value                        | Description                                                                        |
-| --------------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
-| codescan.semgrepfilename          | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
-| codescan.semgreprules             | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
+| Config Key                        | Environment Variable                   | Default Value                        | Description                                                       |
+| --------------------------------- |----------------------------------------| ------------------------------------ |-------------------------------------------------------------------|
+| codescan.semgrepfilename          | PORTAGE_CODE_SCAN_SEMGREP_FILENAME     | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep' |
+| codescan.semgreprules             | PORTAGE_CODE_SCAN_SEMGREP_RULES        | p/default                            | Semgrep ruleset manual override                                   |
+| codescan.semgrepexperimental      | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL | false                                | Enable the use of the semgrep experimental CLI                    |
 
 ### Rulesets
 

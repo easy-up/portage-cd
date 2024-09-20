@@ -12,8 +12,8 @@ import (
 )
 
 type CodeScanOptions struct {
-	SemgrepRules        string
 	SemgrepFilename     string
+	SemgrepRules        string
 	SemgrepExperimental bool
 	GitleaksFilename    string
 	GitleaksSrc         string

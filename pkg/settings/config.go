@@ -45,13 +45,14 @@ type configImageScan struct {
 }
 
 type configCodeScan struct {
-	Enabled          bool   `mapstructure:"enabled"          metafield:"CodeScanEnabled"`
-	GitleaksFilename string `mapstructure:"gitleaksFilename" metafield:"CodeScanGitleaksFilename"`
-	GitleaksSrcDir   string `mapstructure:"gitleaksSrcDir"   metafield:"CodeScanGitleaksSrcDir"`
-	SemgrepFilename  string `mapstructure:"semgrepFilename"  metafield:"CodeScanSemgrepFilename"`
-	SemgrepRules     string `mapstructure:"semgrepRules"     metafield:"CodeScanSemgrepRules"`
-	SnykFilename     string `mapstructure:"snykFilename"     metafield:"CodeScanSnykFilename"`
-	SnykSrcDir       string `mapstructure:"snykSrcDir"       metafield:"CodeScanSnykSrcDir"`
+	Enabled             bool   `mapstructure:"enabled"             metafield:"CodeScanEnabled"`
+	GitleaksFilename    string `mapstructure:"gitleaksFilename"    metafield:"CodeScanGitleaksFilename"`
+	GitleaksSrcDir      string `mapstructure:"gitleaksSrcDir"      metafield:"CodeScanGitleaksSrcDir"`
+	SemgrepFilename     string `mapstructure:"semgrepFilename"     metafield:"CodeScanSemgrepFilename"`
+	SemgrepRules        string `mapstructure:"semgrepRules"        metafield:"CodeScanSemgrepRules"`
+	SemgrepExperimental bool   `mapstructure:"semgrepExperimental" metafield:"CodeScanSemgrepExperimental"`
+	SnykFilename        string `mapstructure:"snykFilename"        metafield:"CodeScanSnykFilename"`
+	SnykSrcDir          string `mapstructure:"snykSrcDir"          metafield:"CodeScanSnykSrcDir"`
 }
 
 type configImagePublish struct {
@@ -87,6 +88,7 @@ type MetaConfig struct {
 	CodeScanGitleaksFilename          MetaField
 	CodeScanSemgrepFilename           MetaField
 	CodeScanSemgrepRules              MetaField
+	CodeScanSemgrepExperimental       MetaField
 	CodeScanGitleaksSrcDir            MetaField
 	CodeScanSnykFilename              MetaField
 	CodeScanSnykSrcDir                MetaField
@@ -407,6 +409,17 @@ func NewMetaConfig() *MetaConfig {
 			DefaultValue:    "p/auto",
 			stringDecoder:   stringToStringDecoder,
 			cobraFunc:       stringVarCobraFunc,
+		},
+		CodeScanSemgrepExperimental: MetaField{
+			FlagValueP:      new(bool),
+			FlagName:        "semgrep-experimental",
+			FlagDesc:        "Enable the use of the semgrep experimental CLI",
+			EnvKey:          "PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL",
+			ActionInputName: "semgrep_experimental",
+			ActionType:      "Bool",
+			DefaultValue:    "false",
+			stringDecoder:   stringToBoolDecoder,
+			cobraFunc:       boolVarCobraFunc,
 		},
 		CodeScanSnykSrcDir: MetaField{
 			FlagValueP:      new(string),

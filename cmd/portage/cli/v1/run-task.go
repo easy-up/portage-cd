@@ -12,7 +12,6 @@ import (
 
 var (
 	flagAntivirusPull   = new(bool)
-	flagExperimental    = new(bool)
 	flagPodmanInterface = new(bool)
 	flagSnyk            = new(bool)
 )
@@ -54,9 +53,8 @@ func newRunTaskCommand() *cobra.Command {
 	// Code Scan flags - semgrep
 	settings.SetupCobra(&metaConfig.CodeScanSemgrepFilename, runSASTCodeScanTask)
 	settings.SetupCobra(&metaConfig.CodeScanSemgrepRules, runSASTCodeScanTask)
+	settings.SetupCobra(&metaConfig.CodeScanSemgrepExperimental, runSASTCodeScanTask)
 	settings.SetupCobra(&metaConfig.ArtifactDir, runSASTCodeScanTask)
-	runSASTCodeScanTask.Flags().BoolVar(flagExperimental, "experimental", false,
-		"run using osemgrep, the statically compiled version of semgrep using OCAML")
 
 	// Code Scan flags - snyk
 	settings.SetupCobra(&metaConfig.CodeScanSnykFilename, runSASTCodeScanTask)
@@ -212,10 +210,11 @@ var runSASTCodeScanTask = &cobra.Command{
 
 func runSemgrep(cmd *cobra.Command, args []string) error {
 	opts := tasks.CodeScanOptions{
-		SemgrepRules:        config.CodeScan.SemgrepRules,
 		SemgrepFilename:     path.Join(config.ArtifactDir, config.CodeScan.SemgrepFilename),
-		SemgrepExperimental: *flagExperimental,
+		SemgrepRules:        config.CodeScan.SemgrepRules,
+		SemgrepExperimental: config.CodeScan.SemgrepExperimental,
 	}
+
 	task := new(tasks.SemgrepCodeScanTask)
 	task.SetOptions(opts)
 	task.SetDisplayWriter(cmd.OutOrStdout())

@@ -47,11 +47,12 @@ type configImageScan struct {
 }
 
 type configCodeScan struct {
-	Enabled          bool   `mapstructure:"enabled"`
-	GitleaksFilename string `mapstructure:"gitleaksFilename"`
-	GitleaksSrcDir   string `mapstructure:"gitleaksSrcDir"`
-	SemgrepFilename  string `mapstructure:"semgrepFilename"`
-	SemgrepRules     string `mapstructure:"semgrepRules"`
+	Enabled             bool   `mapstructure:"enabled"`
+	GitleaksFilename    string `mapstructure:"gitleaksFilename"`
+	GitleaksSrcDir      string `mapstructure:"gitleaksSrcDir"`
+	SemgrepFilename     string `mapstructure:"semgrepFilename"`
+	SemgrepRules        string `mapstructure:"semgrepRules"`
+	SemgrepExperimental bool   `mapstructure:"semgrepExperimental"`
 }
 
 type configImagePublish struct {
@@ -261,6 +262,14 @@ var metaConfig = []metaConfigField{
 		ActionType:      "String",
 		Default:         "p/default",
 		Description:     "Semgrep ruleset manual override",
+	},
+	{
+		Key:             "codescan.semgrepexperimental",
+		Env:             "PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL",
+		ActionInputName: "semgrep_experimental",
+		ActionType:      "Bool",
+		Default:         false,
+		Description:     "Enable the use of the semgrep experimental CLI",
 	},
 
 	{

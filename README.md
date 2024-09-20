@@ -79,13 +79,14 @@ Configuration Order-of-Precedence:
 
 Note: `(none)` means unset, left blank
 
-| Config Key                        | Environment Variable                 | Default Value                        | Description                                                                        |
-| --------------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
+| Config Key                        | Environment Variable                     | Default Value                        | Description                                                                        |
+| --------------------------------- |------------------------------------------| ------------------------------------ |------------------------------------------------------------------------------------|
 | codescan.enabled                  | PORTAGE_CODE_SCAN_ENABLED                | 1                                    | Enable/Disable the code scan pipeline                                              |
 | codescan.gitleaksfilename         | PORTAGE_CODE_SCAN_GITLEAKS_FILENAME      | gitleaks-secrets-report.json         | The filename for the gitleaks secret report - must contain 'gitleaks'              |
 | codescan.gitleakssrcdir           | PORTAGE_CODE_SCAN_GITLEAKS_SRC_DIR       | .                                    | The target directory for the gitleaks scan                                         |
 | codescan.semgrepfilename          | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
 | codescan.semgreprules             | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
+| codescan.semgrepexperimental      | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL   | false                                | Enable the use of the semgrep experimental CLI                                     |
 | deploy.enabled                    | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the deploy pipeline                                                 |
 | deploy.gatecheckconfigfilename    | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | -                                    | The filename for the gatecheck config                                              |
 | gatecheckbundlefilename           | PORTAGE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |

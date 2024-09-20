@@ -153,7 +153,7 @@ func (p *CodeScan) semgrepJob(task *AsyncTask) {
 		shell.WithStdout(reportWriter), // where the report goes
 		shell.WithStderr(task.StderrPipeWriter),
 
-		shell.WithSemgrep(p.config.CodeScan.SemgrepRules, p.SemgrepExperimental),
+		shell.WithSemgrep(p.config.CodeScan.SemgrepRules, p.config.CodeScan.SemgrepExperimental),
 	)
 
 	var commandError *shell.ErrCommand

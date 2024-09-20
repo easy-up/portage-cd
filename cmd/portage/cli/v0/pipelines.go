@@ -69,7 +69,8 @@ func newRunCommand() *cobra.Command {
 	codeScanCmd.Flags().String("semgrep-rules", "", "the rules semgrep will use for the scan")
 	_ = viper.BindPFlag("codescan.semgreprules", codeScanCmd.Flags().Lookup("semgrep-rules"))
 
-	codeScanCmd.Flags().Bool("semgrep-experimental", false, "use the osemgrep statically compiled binary")
+	codeScanCmd.Flags().Bool("semgrep-experimental", false, "Enable the use of the semgrep experimental CLI")
+	_ = viper.BindPFlag("codescan.semgrepexperimental", codeScanCmd.Flags().Lookup("semgrep-experimental"))
 
 	// run deploy
 	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeploy)
@@ -191,7 +192,6 @@ func runimagePublish(cmd *cobra.Command, _ []string) error {
 
 func runCodeScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
-	semgrepExperimental, _ := cmd.Flags().GetBool("semgrep-experimental")
 
 	v := viper.GetViper()
 	configFilename := v.GetString("config")
@@ -201,7 +201,7 @@ func runCodeScan(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, semgrepExperimental)
+	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 
 func runImageDelivery(cmd *cobra.Command, args []string) error {
@@ -254,10 +254,9 @@ func imagePublishPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.
 	return pipeline.WithConfig(config).Run()
 }
 
-func codeScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, semgrepExperimental bool) error {
+func codeScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
 	pipeline := pipelines.NewCodeScan(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
-	pipeline.SemgrepExperimental = semgrepExperimental
 
 	return pipeline.WithConfig(config).Run()
 }
