@@ -7,7 +7,7 @@ ARG SEMGREP_VERSION=v1.85.0
 
 RUN apk add --no-cache bash build-base git make opam
 
-RUN opam init --compiler=4.14.0 --disable-sandboxing
+RUN opam init --compiler=4.14.0 --disable-sandboxing --no
 RUN opam switch 4.14.0
 
 WORKDIR /src
@@ -27,6 +27,8 @@ RUN make install-deps-ALPINE-for-semgrep-core && \
 RUN apk add --no-cache zstd libpsl-utils
 
 RUN make install-deps-for-semgrep-core
+
+ARG DUNE_PROFILE=release
 
 RUN eval "$(opam env)" && \
     make minimal-build && \
