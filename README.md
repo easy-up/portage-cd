@@ -4,19 +4,25 @@
 
 ![Portage CD Logo](./static/portage-cd-logo.svg)
 
-Portage CD is a secure, continuous delivery pipeline designed to orchestrate the process of building and scanning an
-application image for security vulnerabilities.
-It solves the problem of having to configure a hardened-predefined security pipeline using traditional CI/CD.
-Portage CD can be statically compiled as a binary and run on virtually any platform, CI/CD
-environment, or locally.
+## Basic Overview
+
+Portage CD is a secure, continuous delivery pipeline built on open source.  Portage CD is designed to orchestrate the process of building and scanning an application image for security vulnerabilities.  The unique aspect of Portage CD is that it is meant to be portable, meaning that a developer can run the entire pipeline locally, address any security vulnerabilities or code issues before pushing before pushing a branch to a CI/CD pipeline based in the cloud that is also running Portage CD. 
+
+This project aims to simplify the CI/CD build process such that developers can focus on building their unit and end to end tests, and spend less time working on security pipeline tooling, and standing up continuous delivery (CD).
+
+Portage CD is designed to make CI/CD easier by providing a preconfigured security and container building pipeline that can be configured such that tools can be overridden where an enterprise SaaS tool may exist. The tool has also been designed so that i can be incorporated into existing CI pipelines running in any CI platform.  Portage CD can be statically compiled as a binary and run on virtually any environment or CI/CD platform.
+
+At it's core, Portage CD is a golang based CLI tool that is configured to chain the security and container building open source tools below to make the CI/CD process easier.
 
 ## Getting Started
 
+NOTE: *While Portage CD will easily work with any Windows or Linux environment, the following instructions are done on a MacOS PC environment.  In the future we will update this Readme with instructions for other environments.*
+
 Install Prerequisites:
 
-- Container Engine
-- Docker or Podman CLI
-- Golang >= v1.22.0
+- Container Engine (e.g. [Docker](https://docs.docker.com/desktop/), Openshift, etc.)
+- [Docker](https://docs.docker.com/desktop/) or Podman CLI
+- Golang >= v1.22.0 ([brew install](https://formulae.brew.sh/formula/go))
 - [Just](https://github.com/casey/just?tab=readme-ov-file#installation) (optional)
 
 Prerequisite Tools (For running `portage` local)
@@ -28,7 +34,21 @@ Prerequisite Tools (For running `portage` local)
 - ClamAV (only the `clamscan` and `freshclam` cli utilities are needed)
 - ORAS
 
-## Compiling Portage CD
+If you are running on a mac and have brew installed, you can install these dependencies using the following command.
+
+```bash
+brew install gitleaks semgrep syft grype clamav oras
+```
+
+## Compiling Portage CD for Local Use
+
+Clone the repo and navigate to the directory in the shell.
+
+```bash
+git clone <this-repo> <target-dir>
+cd <target-dir>
+mkdir bin
+```
 
 Running the just recipe will put the compiled-binary into `./bin`
 
@@ -36,31 +56,23 @@ Running the just recipe will put the compiled-binary into `./bin`
 just build
 ```
 
-OR compile manually
+OR you can compile Portage CD manually
 
 ```bash
-git clone <this-repo> <target-dir>
-cd <target-dir>
-mkdir bin
-go build -o bin/portage ./cmd/portage
-```
-
-Optionally, if you care to include metadata about the version of `portage` (displayed when you run `portage version`), use the following build arguments
-
-```shell
 go build -ldflags="-X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B)'" -o ./bin ./cmd/portage
 ```
 
+## Running A Pipeline Locally
 
-## Running A Pipeline
+First, map the portage binary to your $PATH via ~/.zshrc or copy the binary into your /usr/local/bin.
 
-You can run the executable directory
+Then navigate to the source code directory that you wish to run the pipeline scanning tools on.  To run the security pipeline directly, run the following command.
 
 ```bash
 portage run debug
 ```
 
-## Configuring a Pipeline
+### Configuring a Pipeline
 
 Configuration Options:
 
@@ -107,8 +119,20 @@ Note: `(none)` means unset, left blank
 | imagescan.grypefilename           | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
 | imagescan.syftfilename            | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
 
+For Example if you want to run portage scans only and not build the container nor deploy it, you can run the following command.
 
-## Running in Docker
+```bash
+portage run -imagebuild.enabled 0 -deploy.enabled 0
+```
+
+
+## Running a Pipeline in Docker
+
+The latest Portage Docker container can be found here:
+
+```
+TBD
+```
 
 When running portage in a docker container there are some pipelines that need to run docker commands.
 In order for the docker CLI in the portage to connect to the docker daemon running on the host machine,
