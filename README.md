@@ -44,6 +44,22 @@ If you are running on a mac and have brew installed, you can install these depen
 brew install gitleaks semgrep syft grype clamav oras
 ```
 
+Once ClamAV is installed, you will need to configure it to download the virus definitions.  This can be done by adding the following lines to your `/etc/freshclam.conf` file. 
+
+```
+# Allow freshclam to run as root
+DatabaseMirror database.clamav.net
+Foreground yes
+```
+
+Freschclam will download and run the latest virus definitions every time you run it.  WARNING: This will generate a lot of network traffic.  Please be aware that if you pull too many times, you will be rate limited by the virus definition servers. 
+
+Run the following command to download the virus definitions.
+
+```bash
+freshclam
+```
+
 ## Compiling Portage CD for Local Use
 
 Clone the repo and navigate to the directory in the shell.
@@ -131,6 +147,12 @@ Note: `(none)` means unset, left blank
 | imagescan.grypeconfigfilename     | PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
 | imagescan.grypefilename           | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
 | imagescan.syftfilename            | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
+
+To run a pipeline with all the defaults, run the following command.
+```bash
+portage run all --tag "ttl.sh/$(uuidgen | tr '[:upper:]' '[:lower:]'):1h"
+```
+
 
 For Example if you want to run portage scans only and not build the container nor deploy it, you can run the following command.
 
