@@ -7,7 +7,7 @@ ARG SEMGREP_VERSION=v1.85.0
 
 RUN apk add --no-cache bash build-base git make opam
 
-RUN opam init --compiler=4.14.0 --disable-sandboxing --no
+RUN opam init --compiler=4.14.0 --disable-sandboxing
 RUN opam switch 4.14.0
 
 WORKDIR /src
@@ -15,8 +15,6 @@ WORKDIR /src
 RUN git clone --recurse-submodules --branch ${SEMGREP_VERSION} --depth=1 --single-branch https://github.com/semgrep/semgrep
 
 WORKDIR /src/semgrep
-
-ARG OPAMSOLVERTIMEOUT=600
 
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
@@ -27,8 +25,6 @@ RUN make install-deps-ALPINE-for-semgrep-core && \
 RUN apk add --no-cache zstd libpsl-utils
 
 RUN make install-deps-for-semgrep-core
-
-ARG DUNE_PROFILE=release
 
 RUN eval "$(opam env)" && \
     make minimal-build && \
