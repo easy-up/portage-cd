@@ -25,6 +25,10 @@ Install Prerequisites:
 - Golang >= v1.22.0 ([brew install](https://formulae.brew.sh/formula/go))
 - [Just](https://github.com/casey/just?tab=readme-ov-file#installation) (optional)
 
+```bash
+brew install go@1.22 just
+```
+
 Prerequisite Tools (For running `portage` local)
 
 - Gitleaks
@@ -65,6 +69,15 @@ go build -ldflags="-X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommi
 ## Running A Pipeline Locally
 
 First, map the portage binary to your $PATH via ~/.zshrc or copy the binary into your /usr/local/bin.
+
+```bash
+echo 'export PATH="$PATH:/path/to/portage/bin"' >> ~/.zshrc
+source ~/.zshrc
+```
+OR
+```bash
+sudo cp /path/to/portage/bin/portage /usr/local/bin/
+```
 
 Then navigate to the source code directory that you wish to run the pipeline scanning tools on.  To run the security pipeline directly, run the following command.
 
