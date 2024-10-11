@@ -85,8 +85,6 @@ func newRunCommand() *cobra.Command {
 	imageDeliveryCmd.Flags().AddFlagSet(imageScanCmd.Flags())
 	imageDeliveryCmd.Flags().AddFlagSet(imagePublishCmd.Flags())
 
-	imageDeliveryCmd.Flags().Bool("skip-publish", false, "skip the publish pipeline")
-
 	// run all
 
 	allCmd := newBasicCommand("all", "run code scan + image delivery + deployment validation", runAll)
