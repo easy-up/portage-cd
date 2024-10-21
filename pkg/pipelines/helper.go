@@ -39,9 +39,9 @@ func OpenOrCreateFile(filename string) (*os.File, error) {
 
 // InitGatecheckBundle will encode the config file to JSON and create a new bundle or add it to an existing one
 //
-// The stderr will be suppressed unless there is an non-zero exit code
+// The stderr will be suppressed unless there is anG non-zero exit code
 func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) error {
-	tempConfigFilename := path.Join(os.TempDir(), "wfe-config.json")
+	tempConfigFilename := path.Join(os.TempDir(), "portage-config.json")
 
 	tempFile, err := OpenOrCreateFile(tempConfigFilename)
 	if err != nil {

@@ -50,7 +50,7 @@ Input Flag:
 
       --semgrep-rules string
       
-The input of a `.yaml`,`.toml`, or `.json` file with a ruleset Semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or portage config keys within wfe-config.yaml.](#env-variables)
+The input of a `.yaml`,`.toml`, or `.json` file with a ruleset Semgrep will use while scanning your code. More on rulesets [here.](#rulesets) This can be further configured by specifying the filename with path into an [environment variable or portage config keys within portage-config.yaml.](#env-variables)
 
 ---
 
