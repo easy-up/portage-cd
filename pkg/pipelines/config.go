@@ -53,6 +53,7 @@ type configCodeScan struct {
 	SemgrepFilename     string `mapstructure:"semgrepFilename"`
 	SemgrepRules        string `mapstructure:"semgrepRules"`
 	SemgrepExperimental bool   `mapstructure:"semgrepExperimental"`
+	SemgrepSrcDir       string `mapstructure:"semgrepSrcDir"`
 }
 
 type configImagePublish struct {
@@ -270,6 +271,14 @@ var metaConfig = []metaConfigField{
 		ActionType:      "Bool",
 		Default:         false,
 		Description:     "Enable the use of the semgrep experimental CLI",
+	},
+	{
+		Key:             "codescan.semgrepsrcdir",
+		Env:             "PORTAGE_CODE_SCAN_SEMGREP_SRC_DIR",
+		ActionInputName: "semgrep_src_dir",
+		ActionType:      "String",
+		Default:         ".",
+		Description:     "The target directory for the semgrep scan",
 	},
 
 	{

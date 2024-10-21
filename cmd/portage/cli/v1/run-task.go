@@ -54,6 +54,7 @@ func newRunTaskCommand() *cobra.Command {
 	settings.SetupCobra(&metaConfig.CodeScanSemgrepFilename, runSASTCodeScanTask)
 	settings.SetupCobra(&metaConfig.CodeScanSemgrepRules, runSASTCodeScanTask)
 	settings.SetupCobra(&metaConfig.CodeScanSemgrepExperimental, runSASTCodeScanTask)
+	settings.SetupCobra(&metaConfig.CodeScanSemgrepSrcDir, runSASTCodeScanTask)
 	settings.SetupCobra(&metaConfig.ArtifactDir, runSASTCodeScanTask)
 
 	// Code Scan flags - snyk
@@ -213,6 +214,7 @@ func runSemgrep(cmd *cobra.Command, args []string) error {
 		SemgrepFilename:     path.Join(config.ArtifactDir, config.CodeScan.SemgrepFilename),
 		SemgrepRules:        config.CodeScan.SemgrepRules,
 		SemgrepExperimental: config.CodeScan.SemgrepExperimental,
+		SemgrepSrcDir:       config.CodeScan.SemgrepSrcDir,
 	}
 
 	task := new(tasks.SemgrepCodeScanTask)

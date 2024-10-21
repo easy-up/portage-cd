@@ -81,8 +81,9 @@ type Options struct {
 	}
 
 	semgrep struct {
-		rules        string
-		experimental bool
+		rules           string
+		experimental    bool
+		targetDirectory string
 	}
 
 	gitleaks struct {
@@ -251,10 +252,11 @@ func WithConfigFile(filename string) OptionFunc {
 }
 
 // WithSemgrep specific parameters
-func WithSemgrep(rules string, experimental bool) OptionFunc {
+func WithSemgrep(rules string, experimental bool, targetDirectory string) OptionFunc {
 	return func(o *Options) {
 		o.semgrep.rules = rules
 		o.semgrep.experimental = experimental
+		o.semgrep.targetDirectory = targetDirectory
 	}
 }
 

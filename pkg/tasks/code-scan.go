@@ -15,6 +15,7 @@ type CodeScanOptions struct {
 	SemgrepFilename     string
 	SemgrepRules        string
 	SemgrepExperimental bool
+	SemgrepSrcDir       string
 	GitleaksFilename    string
 	GitleaksSrc         string
 	SnykCodeFilename    string
@@ -88,9 +89,9 @@ func (t *SemgrepCodeScanTask) Run(ctx context.Context, dstStderr io.Writer) erro
 		return err
 	}
 
-	semgrepCmd := exec.CommandContext(ctx, "semgrep", "scan", "--json", "--config", t.opts.SemgrepRules)
+	semgrepCmd := exec.CommandContext(ctx, "semgrep", "scan", "--json", "--config", t.opts.SemgrepRules, t.opts.SemgrepSrcDir)
 	if t.opts.SemgrepExperimental {
-		semgrepCmd = exec.CommandContext(ctx, "osemgrep", "scan", "--json", "--experimental", "--config", t.opts.SemgrepRules)
+		semgrepCmd = exec.CommandContext(ctx, "osemgrep", "scan", "--json", "--experimental", "--config", t.opts.SemgrepRules, t.opts.SemgrepSrcDir)
 	}
 	semgrepCmd.Stdout = t.semgrepFile
 	err := StreamStderr(semgrepCmd, dstStderr, "semgrep code scan")

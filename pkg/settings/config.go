@@ -51,6 +51,7 @@ type configCodeScan struct {
 	SemgrepFilename     string `mapstructure:"semgrepFilename"     metafield:"CodeScanSemgrepFilename"`
 	SemgrepRules        string `mapstructure:"semgrepRules"        metafield:"CodeScanSemgrepRules"`
 	SemgrepExperimental bool   `mapstructure:"semgrepExperimental" metafield:"CodeScanSemgrepExperimental"`
+	SemgrepSrcDir       string `mapstructure:"semgrepSrcDir"       metafield:"CodeScanSemgrepSrcDir"`
 	SnykFilename        string `mapstructure:"snykFilename"        metafield:"CodeScanSnykFilename"`
 	SnykSrcDir          string `mapstructure:"snykSrcDir"          metafield:"CodeScanSnykSrcDir"`
 }
@@ -89,6 +90,7 @@ type MetaConfig struct {
 	CodeScanSemgrepFilename           MetaField
 	CodeScanSemgrepRules              MetaField
 	CodeScanSemgrepExperimental       MetaField
+	CodeScanSemgrepSrcDir             MetaField
 	CodeScanGitleaksSrcDir            MetaField
 	CodeScanSnykFilename              MetaField
 	CodeScanSnykSrcDir                MetaField
@@ -420,6 +422,17 @@ func NewMetaConfig() *MetaConfig {
 			DefaultValue:    "false",
 			stringDecoder:   stringToBoolDecoder,
 			cobraFunc:       boolVarCobraFunc,
+		},
+		CodeScanSemgrepSrcDir: MetaField{
+			FlagValueP:      new(string),
+			FlagName:        "semgrep-src-dir",
+			FlagDesc:        "The target directory for the semgrep scan",
+			EnvKey:          "PORTAGE_CODE_SCAN_SEMGREP_SRC_DIR",
+			ActionInputName: "semgrep_src_dir",
+			ActionType:      "String",
+			DefaultValue:    ".",
+			stringDecoder:   stringToStringDecoder,
+			cobraFunc:       stringVarCobraFunc,
 		},
 		CodeScanSnykSrcDir: MetaField{
 			FlagValueP:      new(string),
