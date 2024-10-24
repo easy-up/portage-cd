@@ -9,6 +9,29 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## [v0.0.2] - 2024-10-23
+
+* Update gatecheck version to v0.8.0
+* Added a default gatecheck configuration and added merge capabilities
+* Added --coverage-file / codescan.coveragefile support
+* updated old wfe filename
+* Added a CLI argument and env variable to specify the target dir for semgrep
+* Dockerfile: Disable opam init interactive prompt, and build using the release profile
+* Increase OPAM timeout to decrease likelihood of intermittent docker build failure
+* Fix issue with freshclam. Closes issue #3
+* Ignore extraneous build output directory
+* Standardized the configuration of the semgrep tool. Default to experimental in the docker image.
+* Simplified artifact bundle publishing configuration
+* Drop the --all flag from the gatecheck list command. Fixes Issue #5
+* Added a list of the prerequisites for running portage locally
+* Made the Dockerfile completely self-contained and bumped the versions of semgrep and gatecheck.
+* Added justfile target for performing local docker builds.
+* Fixed semgrep commandlines
+* Enable build on pushes to the main branch and tags.
+* Fixed portage-cd-actions repository name reference
+
+## [v0.0.1-rc.17]
+
 ### Added
 
 - GitHub action auth support
