@@ -54,6 +54,7 @@ type configCodeScan struct {
 	SemgrepRules        string `mapstructure:"semgrepRules"`
 	SemgrepExperimental bool   `mapstructure:"semgrepExperimental"`
 	SemgrepSrcDir       string `mapstructure:"semgrepSrcDir"`
+	CoverageFile        string `mapstructure:"coverageFile"`
 }
 
 type configImagePublish struct {
@@ -271,6 +272,14 @@ var metaConfig = []metaConfigField{
 		ActionType:      "Bool",
 		Default:         false,
 		Description:     "Enable the use of the semgrep experimental CLI",
+	},
+	{
+		Key:             "codescan.coveragefile",
+		Env:             "PORTAGE_CODE_SCAN_COVERAGE_FILE",
+		ActionInputName: "coverage_file",
+		ActionType:      "String",
+		Default:         "",
+		Description:     "An externally generated code coverage file to validate",
 	},
 	{
 		Key:             "codescan.semgrepsrcdir",

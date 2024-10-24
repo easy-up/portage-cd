@@ -72,6 +72,9 @@ func newRunCommand() *cobra.Command {
 	codeScanCmd.Flags().Bool("semgrep-experimental", false, "Enable the use of the semgrep experimental CLI")
 	_ = viper.BindPFlag("codescan.semgrepexperimental", codeScanCmd.Flags().Lookup("semgrep-experimental"))
 
+	codeScanCmd.Flags().String("coverage-file", "", "An externally generated code coverage file to validate")
+	_ = viper.BindPFlag("codescan.coveragefile", codeScanCmd.Flags().Lookup("coverage-file"))
+
 	// run deploy
 	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeploy)
 	deployCmd.Flags().String("gatecheck-config", "", "gatecheck configuration file")
