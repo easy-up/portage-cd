@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"portage/pkg/shell"
+	"slices"
 )
 
 type CodeScan struct {
@@ -25,6 +26,7 @@ type CodeScan struct {
 		bundleFilename    string
 		gitleaksFilename  string
 		semgrepFilename   string
+		coverageFile      string
 		postSummaryBuffer *bytes.Buffer
 	}
 }
@@ -65,6 +67,8 @@ func (p *CodeScan) preRun() error {
 		slog.Error("cannot open semgrep report file", "filename", p.runtime.semgrepFilename, "error", err)
 		return err
 	}
+
+	p.runtime.coverageFile = p.config.CodeScan.CoverageFile
 
 	if err := InitGatecheckBundle(p.config, p.Stderr, p.DryRunEnabled); err != nil {
 		slog.Error("cannot initialize gatecheck bundle", "error", err)
@@ -235,13 +239,21 @@ func (p *CodeScan) gatecheckBundleJob(task *AsyncTask, semgrep *AsyncTask, gitle
 		shell.WithErrorOnly(task.StderrPipeWriter),
 	}
 
-	semgrepOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.semgrepFilename), shell.WithWaitFunc(semgrep.Wait))
+	// Add semgrep report file to the gatecheck bundle
+	semgrepOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.semgrepFilename), shell.WithWaitFunc(semgrep.Wait)})
 	err := shell.GatecheckBundleAdd(semgrepOpts...)
 	task.ExitError = errors.Join(task.ExitError, err)
 
-	gitleaksOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.gitleaksFilename), shell.WithWaitFunc(gitleaksTask.Wait))
+	// Add gitleaks report file to the gatecheck bundle
+	gitleaksOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.gitleaksFilename), shell.WithWaitFunc(gitleaksTask.Wait)})
 	err = shell.GatecheckBundleAdd(gitleaksOpts...)
 	task.ExitError = errors.Join(task.ExitError, err)
+
+	if p.runtime.coverageFile != "" {
+		coverageOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.coverageFile)})
+		err = shell.GatecheckBundleAdd(coverageOpts...)
+		task.ExitError = errors.Join(task.ExitError, err)
+	}
 }
 
 func (p *CodeScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {

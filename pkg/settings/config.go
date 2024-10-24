@@ -93,6 +93,7 @@ type MetaConfig struct {
 	CodeScanSemgrepSrcDir             MetaField
 	CodeScanGitleaksSrcDir            MetaField
 	CodeScanSnykFilename              MetaField
+	CodeScanCoverageFile              MetaField
 	CodeScanSnykSrcDir                MetaField
 	ImagePublishEnabled               MetaField
 	ImagePublishBundleTag             MetaField
@@ -453,6 +454,17 @@ func NewMetaConfig() *MetaConfig {
 			ActionInputName: "snyk_code_filename",
 			ActionType:      "String",
 			DefaultValue:    "code-scan-report.snyk.sarif.json",
+			stringDecoder:   stringToStringDecoder,
+			cobraFunc:       stringVarCobraFunc,
+		},
+		CodeScanCoverageFile: MetaField{
+			FlagValueP:      new(string),
+			FlagName:        "coverage-file",
+			FlagDesc:        "An externally generated code coverage file to validate",
+			EnvKey:          "PORTAGE_CODE_SCAN_COVERAGE_FILE",
+			ActionInputName: "code_coverage_file",
+			ActionType:      "String",
+			DefaultValue:    "",
 			stringDecoder:   stringToStringDecoder,
 			cobraFunc:       stringVarCobraFunc,
 		},
