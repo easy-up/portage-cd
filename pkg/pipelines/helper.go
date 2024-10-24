@@ -60,21 +60,23 @@ func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) e
 	}
 
 	bundleFilename := path.Join(config.ArtifactDir, config.GatecheckBundleFilename)
+
+	return AddBundleFile(dryRunEnabled, bundleFilename, tempConfigFilename, stderr)
+}
+
+func AddBundleFile(dryRunEnabled bool, bundleFilename string, filename string, stderr io.Writer) error {
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(dryRunEnabled),
-		shell.WithBundleFile(bundleFilename, tempConfigFilename),
+		shell.WithBundleFile(bundleFilename, filename),
 		shell.WithErrorOnly(stderr),
 	}
-	if _, err = os.Stat(bundleFilename); err != nil {
+	if _, err := os.Stat(bundleFilename); err != nil {
 		// The bundle file does not exist
 		if errors.Is(err, os.ErrNotExist) {
-			exitCode := shell.GatecheckBundleCreate(opts...)
-			return exitCode
+			return shell.GatecheckBundleCreate(opts...)
 		}
 		return err
 	}
 
-	exitCode := shell.GatecheckBundleAdd(opts...)
-
-	return exitCode
+	return shell.GatecheckBundleAdd(opts...)
 }

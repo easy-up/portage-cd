@@ -1,0 +1,25 @@
+version: "1"
+grype:
+  # Block deployments with High or Critical vulnerabilities
+  severityLimit:
+    critical:
+      enabled: true
+      limit: 0
+    high:
+      enabled: true
+      limit: 0
+  # Ignore vulnerabilities with very low Exploit Probability Scores
+  epssRiskAcceptance:
+    enabled: true
+    score: 0.001
+semgrep:
+  severityLimit:
+    error:
+      enabled: true
+      limit: 0
+  # Ignore low impact errors
+  impactRiskAcceptance:
+    enabled: true
+    low: true
+gitleaks:
+  limitEnabled: true
