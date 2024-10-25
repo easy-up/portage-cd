@@ -229,7 +229,7 @@ func NewMetaConfig() *MetaConfig {
 		ImageBuildPlatform: MetaField{
 			FlagValueP:      new(string),
 			FlagName:        "platform",
-			FlagDesc:        "The target platform for build",
+			FlagDesc:        "The target platform for build (e.g., [linux/amd64])",
 			EnvKey:          "PORTAGE_IMAGE_BUILD_PLATFORM",
 			ActionInputName: "platform",
 			ActionType:      "String",
@@ -240,7 +240,7 @@ func NewMetaConfig() *MetaConfig {
 		ImageBuildTarget: MetaField{
 			FlagValueP:      new(string),
 			FlagName:        "target",
-			FlagDesc:        "The target build stage to build (e.g., [linux/amd64])",
+			FlagDesc:        "The target build stage to build",
 			EnvKey:          "PORTAGE_IMAGE_BUILD_TARGET",
 			ActionInputName: "target",
 			ActionType:      "String",

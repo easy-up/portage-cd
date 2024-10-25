@@ -142,7 +142,7 @@ var metaConfig = []metaConfigField{
 		ActionInputName: "platform",
 		ActionType:      "String",
 		Default:         nil,
-		Description:     "The target platform for build",
+		Description:     "The target platform for build (e.g., [linux/amd64])",
 	},
 	{
 		Key:             "imagebuild.target",
@@ -150,7 +150,7 @@ var metaConfig = []metaConfigField{
 		ActionInputName: "target",
 		ActionType:      "String",
 		Default:         nil,
-		Description:     "The target build stage to build (e.g., [linux/amd64])",
+		Description:     "The target build stage to build",
 	},
 	{
 		Key:             "imagebuild.cacheto",
@@ -274,20 +274,20 @@ var metaConfig = []metaConfigField{
 		Description:     "Enable the use of the semgrep experimental CLI",
 	},
 	{
-		Key:             "codescan.coveragefile",
-		Env:             "PORTAGE_CODE_SCAN_COVERAGE_FILE",
-		ActionInputName: "coverage_file",
-		ActionType:      "String",
-		Default:         "",
-		Description:     "An externally generated code coverage file to validate",
-	},
-	{
 		Key:             "codescan.semgrepsrcdir",
 		Env:             "PORTAGE_CODE_SCAN_SEMGREP_SRC_DIR",
 		ActionInputName: "semgrep_src_dir",
 		ActionType:      "String",
 		Default:         ".",
 		Description:     "The target directory for the semgrep scan",
+	},
+	{
+		Key:             "codescan.coveragefile",
+		Env:             "PORTAGE_CODE_SCAN_COVERAGE_FILE",
+		ActionInputName: "coverage_file",
+		ActionType:      "String",
+		Default:         "",
+		Description:     "An externally generated code coverage file to validate",
 	},
 
 	{
@@ -338,9 +338,12 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"imagescan.enabled",
 		"codescan.enabled",
 		"codescan.semgreprules",
+		"codescan.semgrepsrcdir",
+		"codescan.coveragefile",
 		"imagepublish.enabled",
 		"imagepublish.bundletag",
 		"deploy.enabled",
+		"deploy.gatecheckconfigfilename",
 	}
 	fields := make([]metaConfigField, 0)
 
