@@ -139,7 +139,16 @@ Using a .portage config files
 ```bash
 portage run image-build
 ```
-//Example config file here
+
+```yaml
+imageTag: user/image-name
+imagePublish:
+  enabled: false
+codeScan:
+  coverageFile: coverage/cobertura-coverage.xml
+deploy:
+  gatecheckConfigFilename: .gatecheck.yml
+```
 
 Using flags
 
