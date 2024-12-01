@@ -8,9 +8,9 @@
 
 Portage CD is a secure, continuous delivery pipeline built on open source.  Portage CD is designed to orchestrate the process of building and scanning an application image for security vulnerabilities.  The unique aspect of Portage CD is that it is meant to be portable, meaning that a developer can run the entire pipeline locally, address any security vulnerabilities or code issues before pushing before pushing a branch to a CI/CD pipeline based in the cloud that is also running Portage CD. 
 
-This project aims to simplify the CI/CD build process such that developers can focus on building their unit and end to end tests, and spend less time working on security pipeline tooling, and standing up continuous delivery (CD).
+This project aims to simplify the CI/CD build process by providing an easy to use wrapper around security scanning tools and container building tools.  The result is that the development team can build a simpler CI/CD pipeline that is easier to understand and maintain.
 
-Portage CD is designed to make CI/CD easier by providing a preconfigured security and container building pipeline that can be configured such that tools can be overridden where an enterprise SaaS tool may exist. The tool has also been designed so that i can be incorporated into existing CI pipelines running in any CI platform.  Portage CD can be statically compiled as a binary and run on virtually any environment or CI/CD platform.
+Portage CD provides a preconfigured security and container build pipeline that can be configured such that tools can be overridden where an enterprise SaaS tool may exist. The tool has also been designed so that it can be incorporated into existing CI pipelines running in any CI platform (Gitlab CI, Github Actions, Jenkins, etc.).
 
 At it's core, Portage CD is a golang based CLI tool that is configured to chain the security and container building open source tools below to make the CI/CD process easier.
 
@@ -92,63 +92,64 @@ OR
 sudo cp /path/to/portage/bin/portage /usr/local/bin/
 ```
 
-Then navigate to the source code directory that you wish to run the pipeline scanning tools on.  To run the security pipeline directly, run the following command.
+Then navigate to the source code directory that you wish to run the pipeline scanning tools on.  To run the security pipeline directly, make a copy of .portage.yml.example and name it .portage.yml.  Edit the .portage.yml file to configure the pipeline to your needs,then run the following command.
 
 ```bash
-portage run debug
+portage run all
 ```
 
-### Configuring a Pipeline
+### Running parts of a pipeline
 
-Configuration Options:
-
-Note: `(none)` means unset, left blank
-
-| Configuration Option              | Environment Variable                   | Default Value                        | Description                                                                      |
-|-----------------------------------|----------------------------------------|--------------------------------------|----------------------------------------------------------------------------------|
-| imagescan.grypefilename           | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME      | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'           |
-| imagescan.syftfilename            | PORTAGE_IMAGE_SCAN_SYFT_FILENAME       | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                      |
-
-To run a pipeline with all the defaults, run the following command.
-```bash
-portage run all --tag "ttl.sh/$(uuidgen | tr '[:upper:]' '[:lower:]'):1h"
-```
-
-
-For Example if you want to run portage scans only and not build the container nor deploy it, you can run the following command.
+If you want to only run the code scan portion of the pipeline, you can run the following command.
 
 ```bash
-portage run all --tag "ttl.sh/$(uuidgen | tr '[:upper:]' '[:lower:]'):1h" --imagebuild.enabled 0 --deploy.enabled 0
+portage run code-scan
 ```
+For more information on running parts of the pipeline, you can run portage run and see the available commands.
 
-
-## Running a Pipeline in Docker
-
-The latest Portage Docker container can be found here:
-
-```
-TBD
-```
-
-When running portage in a docker container there are some pipelines that need to run docker commands.
-In order for the docker CLI in the portage to connect to the docker daemon running on the host machine,
-
-
-### Run the portage container with the desired arguments
-Using a .portage config files
 ```bash
-portage run image-build
+portage run
 ```
 
-```yaml
-imageTag: user/image-name
-imagePublish:
-  enabled: false
-codeScan:
-  coverageFile: coverage/cobertura-coverage.xml
-deploy:
-  gatecheckConfigFilename: .gatecheck.yml
+## Running Portage in Docker
+
+The latest Portage Docker container is available at:
+
+```bash
+ghcr.io/easy-up/portage:latest
 ```
+
+You can run Portage in Docker using either a configuration file or command-line flags:
+
+#### Using a configuration file
+1. Create a `.portage.yml` file in your project directory
+2. Run Portage with:
+
+```bash
+docker run -it --rm \
+  -v "$(pwd):/app:rw" \
+  -v "/var/run/docker.sock:/var/run/docker.sock" \
+  ghcr.io/easy-up/portage:latest \
+  run all
+```
+
+#### Using command-line flags
+For one-off runs, you can specify options directly:
+
+```bash
+docker run -it --rm \
+  -v "$(pwd):/app:rw" \
+  -v "/var/run/docker.sock:/var/run/docker.sock" \
+  ghcr.io/easy-up/portage:latest \
+  run all --tag "your-image-tag:latest"
+```
+
+Key points:
+- Mount your project directory to `/app` to give Portage access to your code
+- Mount the Docker socket if you need to build containers
+- The container runs as read-write (`rw`) to allow for artifact generation
+
+Portage has multiple configuration options that can be set via environment variables or a .portage.yml file.  For more information see the [docs](./docs/.portage.yml.example).
 
 Using flags
 

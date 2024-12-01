@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"log/slog"
 	"portage/pkg/pipelines"
 
@@ -14,7 +15,22 @@ var (
 )
 
 func NewPortageCommand() *cobra.Command {
-	viper.SetConfigName("portage")
+	// Set up Viper configuration
+	viper.SetConfigName(".portage") // name of config file (without extension)
+	viper.SetConfigType("yaml")     // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath(".")        // look for config in the working directory
+
+	// Try to read the config file
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			fmt.Printf("No config file found: %v\n", err)
+		} else {
+			fmt.Printf("Error reading config file: %v\n", err)
+		}
+	} else {
+		fmt.Printf("Using config file: %s\n", viper.ConfigFileUsed())
+	}
+
 	pipelines.BindViper(viper.GetViper())
 
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
