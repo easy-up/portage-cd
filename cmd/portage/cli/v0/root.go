@@ -15,7 +15,36 @@ var (
 
 func NewPortageCommand() *cobra.Command {
 	viper.SetConfigName("portage")
+	viper.AddConfigPath(".")
 	pipelines.BindViper(viper.GetViper())
+
+	// Load default config
+	config := new(pipelines.Config)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			slog.Info("no config file specified for this command, using defaults if applicable")
+		} else {
+			slog.Error("error reading config file", "error", err)
+		}
+	} else {
+		slog.Info("using config file", "path", viper.ConfigFileUsed())
+	}
+
+	if err := viper.Unmarshal(config); err != nil {
+		slog.Error("failed to parse config", "error", err)
+	}
+
+	// Debug log the full config
+	slog.Debug("loaded configuration",
+		"version", config.Version,
+		"imageTag", config.ImageTag,
+		"artifactDir", config.ArtifactDir,
+		"gatecheckBundleFilename", config.GatecheckBundleFilename,
+		"imageBuild", config.ImageBuild,
+		"imageScan", config.ImageScan,
+		"codeScan", config.CodeScan,
+		"imagePublish", config.ImagePublish,
+		"deploy", config.Deploy)
 
 	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{

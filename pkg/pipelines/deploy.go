@@ -4,13 +4,14 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"github.com/jarxorg/tree"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log/slog"
 	"os"
 	"path"
 	"portage/pkg/shell"
+
+	"github.com/jarxorg/tree"
+	"gopkg.in/yaml.v3"
 )
 
 type Deploy struct {
@@ -54,18 +55,17 @@ func (p *Deploy) Run() error {
 		return nil
 	}
 	if err := p.preRun(); err != nil {
-		return errors.New("Deploy Pipeline failed, pre-run error. See logs for details.")
+		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
 
 	slog.Warn("deployment pipeline is a beta feature. Only gatecheck validation will be conducted.")
 
 	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
 	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	defer gatecheckConfig.Close()
-
 	if err != nil {
 		return mkDeploymentError(err)
 	}
+	defer gatecheckConfig.Close()
 
 	if p.config.Deploy.GatecheckConfigFilename != "" {
 		customConfigFile, err := os.ReadFile(p.config.Deploy.GatecheckConfigFilename)

@@ -67,7 +67,7 @@ func (p *ImageScan) preRun() error {
 
 	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
 		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
-		return errors.New("Code Scan Pipeline failed to run.")
+		return errors.New("code Scan Pipeline failed to run")
 	}
 
 	p.runtime.syftFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.SyftFilename)
@@ -127,7 +127,7 @@ func (p *ImageScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return fmt.Errorf("Image Scan Pipeline Pre-Run Failed: %v", err)
+		return fmt.Errorf("image Scan Pipeline Pre-Run Failed: %v", err)
 	}
 
 	fmt.Fprintln(p.Stdout, "******* Portage CD Image Scan Pipeline [Run] *******")

@@ -54,7 +54,7 @@ func (p *ImagePublish) Run() error {
 	)
 	if err != nil {
 		slog.Error("failed to push image tag to registry", "image_tag", p.config.ImageTag)
-		return errors.New("Image Publish Pipeline failed.")
+		return errors.New("image Publish Pipeline failed")
 	}
 
 	if p.config.ImagePublish.BundleTag == "" {
@@ -73,7 +73,7 @@ func (p *ImagePublish) Run() error {
 	if err != nil {
 		slog.Error("failed to push image artifact bundle to registry",
 			"image_tag", p.config.ImagePublish.BundleTag, "bundle_filename", bundleFilename)
-		return errors.New("Image Publish Pipeline failed.")
+		return errors.New("image Publish Pipeline failed")
 	}
 
 	return nil
