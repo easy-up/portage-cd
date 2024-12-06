@@ -189,10 +189,16 @@ var runImagePushTask = &cobra.Command{
 	PreRunE: configPreRunE,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if *flagPodmanInterface {
-			task := tasks.NewGenericImagePushTask("podman", config.ImageTag)
+			task, err := tasks.NewGenericImagePushTask("podman", config.ImageTag)
+			if err != nil {
+				return err
+			}
 			return task.Run(cmd.Context(), cmd.ErrOrStderr())
 		}
-		task := tasks.NewGenericImagePushTask("docker", config.ImageTag)
+		task, err := tasks.NewGenericImagePushTask("docker", config.ImageTag)
+		if err != nil {
+			return err
+		}
 		return task.Run(cmd.Context(), cmd.ErrOrStderr())
 	},
 }

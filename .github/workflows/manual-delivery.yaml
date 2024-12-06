@@ -54,5 +54,7 @@ jobs:
         run: |
           echo "## Docker Action Image Build and Push Summary" >> $GITHUB_STEP_SUMMARY
           echo ":white_check_mark: Docker Action Image Build and Push" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Docker CLI): ghcr.io/easy-up/portage:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Podman CLI): ghcr.io/easy-up/portage:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          # echo ":white_check_mark: Image (Docker CLI): ghcr.io/easy-up/portage:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          # echo ":white_check_mark: Image (Podman CLI): ghcr.io/easy-up/portage:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Docker CLI): ghcr.io/easy-up/portage:${GITHUB_SHA::8}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Podman CLI): ghcr.io/easy-up/portage:podman-${GITHUB_SHA::8}" >> $GITHUB_STEP_SUMMARY

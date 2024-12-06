@@ -37,9 +37,30 @@ type GenericImageSaveTask struct {
 	cmdName string
 }
 
+func isValidImageName(name string) bool {
+	// Only allow characters typically used in Docker image names:
+	// - Lowercase letters, numbers
+	// - Allowed special chars: period, underscore, hyphen
+	// - Forward slash for image paths (e.g., "repository/image")
+	// - Colon for tags (e.g., "image:tag")
+	for _, char := range name {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= '0' && char <= '9') ||
+			char == '.' || char == '_' || char == '-' ||
+			char == '/' || char == ':') {
+			return false
+		}
+	}
+	return len(name) > 0
+}
+
 func (t *GenericImageSaveTask) Run(ctx context.Context, stderr io.Writer) error {
 	if strings.EqualFold(t.opts.ImageName, "") {
 		return errors.New("image name is required")
+	}
+
+	if !isValidImageName(t.opts.ImageName) {
+		return errors.New("invalid image name: must contain only lowercase letters, numbers, and allowed special characters (./_-/:)")
 	}
 
 	// let the open file command handle any invalid filename errors
@@ -60,7 +81,7 @@ func (t *GenericImageSaveTask) Run(ctx context.Context, stderr io.Writer) error 
 
 	mw := io.MultiWriter(imageSaveFile, smWriter)
 
-	imageSaveCmd := exec.CommandContext(ctx, t.cmdName, "save", t.opts.ImageName)
+	imageSaveCmd := exec.CommandContext(ctx, t.cmdName, []string{"save", t.opts.ImageName}...)
 	imageSaveCmd.Stdout = mw
 
 	err = StreamStderr(imageSaveCmd, stderr, "image save")

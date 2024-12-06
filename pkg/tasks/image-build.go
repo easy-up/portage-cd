@@ -43,6 +43,10 @@ func NewImageBuildTask(cliInterface string, opts ...taskOptionFunc) ImageBuildTa
 }
 
 func NewGenericImageBuildTask(cmdString string) *GenericImageBuildTask {
+	if cmdString != "docker" && cmdString != "podman" {
+		panic("cmdString must be either 'docker' or 'podman'")
+	}
+
 	return &GenericImageBuildTask{
 		cmdString: cmdString,
 		args:      make([]string, 0),
@@ -110,6 +114,10 @@ func (t *GenericImageBuildTask) preRun() error {
 func (t *GenericImageBuildTask) Run(ctx context.Context, stderr io.Writer) error {
 	if err := t.preRun(); err != nil {
 		return err
+	}
+
+	if t.cmdString != "docker" && t.cmdString != "podman" {
+		return fmt.Errorf("invalid command string: must be either 'docker' or 'podman'")
 	}
 
 	buildCmd := exec.CommandContext(ctx, t.cmdString, t.args...)
