@@ -135,15 +135,10 @@ func runDebug(cmd *cobra.Command, _ []string) error {
 
 func runDeploy(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
-
-	v := viper.GetViper()
-	configFilename := v.GetString("config")
-
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
-
 	return deployPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 
@@ -151,14 +146,10 @@ func runImageBuild(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 
-	v := viper.GetViper()
-	configFilename := v.GetString("config")
-
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, v); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
-
 	return imageBuildPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
 }
 
@@ -166,11 +157,8 @@ func runImageScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 
-	v := viper.GetViper()
-	configFilename := v.GetString("config")
-
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, v); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
 
@@ -181,11 +169,8 @@ func runimagePublish(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	cliInterface, _ := cmd.Flags().GetString("cli-interface")
 
-	v := viper.GetViper()
-	configFilename := v.GetString("config")
-
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
 	return imagePublishPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
@@ -194,14 +179,10 @@ func runimagePublish(cmd *cobra.Command, _ []string) error {
 func runCodeScan(cmd *cobra.Command, _ []string) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 
-	v := viper.GetViper()
-	configFilename := v.GetString("config")
-
 	config := new(pipelines.Config)
-	if err := LoadOrDefault(configFilename, config, viper.GetViper()); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
-
 	return codeScanPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 

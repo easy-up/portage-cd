@@ -51,7 +51,7 @@ func (p *CodeScan) preRun() error {
 
 	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
 		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
-		return errors.New("Code Scan Pipeline failed to run.")
+		return errors.New("code Scan Pipeline failed to run")
 	}
 
 	p.runtime.gitleaksFilename = path.Join(p.config.ArtifactDir, p.config.CodeScan.GitleaksFilename)
@@ -88,7 +88,7 @@ func (p *CodeScan) Run() error {
 	}
 
 	if err := p.preRun(); err != nil {
-		return fmt.Errorf("Code Scan Pipeline Pre-Run Failed: %v", err)
+		return fmt.Errorf("code Scan Pipeline Pre-Run Failed: %v", err)
 	}
 
 	fmt.Fprintln(p.Stdout, "******* Portage CD Code Scan Pipeline [Run] *******")

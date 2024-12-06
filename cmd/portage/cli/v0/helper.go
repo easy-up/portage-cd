@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"strings"
-	"portage/pkg/pipelines"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
@@ -115,48 +113,6 @@ func ListConfig(w io.Writer, v *viper.Viper) error {
 			return err
 		}
 	}
-	return nil
-}
-
-// LoadOrDefault will use the default values in v if filename is blank
-//
-// Caller should pass in a new config object
-func LoadOrDefault(filename string, config *pipelines.Config, v *viper.Viper) error {
-	slog.Debug("load configuration from file", "filename", filename)
-	if filename == "" {
-		slog.Debug("no filename given, load from env, cli flags, and then defaults")
-		return loadWithoutConfigFile(config, v)
-	}
-
-	v.SetConfigFile(filename)
-
-	err := v.ReadInConfig()
-	if err != nil {
-		slog.Error("viper read in config failed", "filename", filename)
-		return errors.New("config file failed to load.")
-	}
-
-	slog.Debug("unmarshal into config object")
-	if err := v.Unmarshal(config); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func loadWithoutConfigFile(config *pipelines.Config, v *viper.Viper) error {
-	var configNotFoundErr *viper.ConfigFileNotFoundError
-	err := v.ReadInConfig()
-	if err != nil && errors.As(err, &configNotFoundErr) {
-		slog.Error("viper read in config failed", "error", err)
-		return errors.New("config file failed to load.")
-	}
-
-	slog.Debug("unmarshal into config object")
-	if err := v.Unmarshal(config); err != nil {
-		return err
-	}
-
 	return nil
 }
 

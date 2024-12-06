@@ -2,13 +2,15 @@ package pipelines
 
 import (
 	"fmt"
-	"github.com/go-git/go-git/v5"
-	"gopkg.in/yaml.v3"
 	"html/template"
 	"io"
 	"log/slog"
+	"reflect"
 	"slices"
 	"strings"
+
+	"github.com/go-git/go-git/v5"
+	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/viper"
 )
@@ -91,7 +93,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_TAG",
 		ActionInputName: "tag",
 		ActionType:      "String",
-		Default:         "my-app:latest",
+		Default:         nil,
 		Description:     "The full image tag for the target container image",
 	},
 
@@ -100,7 +102,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_ARTIFACT_DIR",
 		ActionInputName: "artifact_dir",
 		ActionType:      "String",
-		Default:         "artifacts",
+		Default:         nil,
 		Description:     "The target directory for all generated artifacts",
 	},
 	{
@@ -108,7 +110,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_GATECHECK_BUNDLE_FILENAME",
 		ActionInputName: "gatecheck_bundle_filename",
 		ActionType:      "String",
-		Default:         "gatecheck-bundle.tar.gz",
+		Default:         nil,
 		Description:     "The filename for the gatecheck bundle, a validatable archive of security artifacts",
 	},
 
@@ -117,7 +119,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_BUILD_ENABLED",
 		ActionInputName: "image_build_enabled",
 		ActionType:      "Bool",
-		Default:         true,
+		Default:         nil,
 		Description:     "Enable/Disable the image build pipeline",
 	},
 	{
@@ -125,7 +127,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_BUILD_DIR",
 		ActionInputName: "build_dir",
 		ActionType:      "String",
-		Default:         ".",
+		Default:         nil,
 		Description:     "The build directory to using during an image build",
 	},
 	{
@@ -133,7 +135,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_BUILD_DOCKERFILE",
 		ActionInputName: "dockerfile",
 		ActionType:      "String",
-		Default:         "Dockerfile",
+		Default:         nil,
 		Description:     "The Dockerfile/Containerfile to use during an image build",
 	},
 	{
@@ -173,7 +175,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_BUILD_SQUASH_LAYERS",
 		ActionInputName: "squash_layers",
 		ActionType:      "Bool",
-		Default:         false,
+		Default:         nil,
 		Description:     "squash image layers - Only Supported with Podman CLI",
 	},
 	{
@@ -187,7 +189,7 @@ var metaConfig = []metaConfigField{
 	{
 		Key:             "imagescan.enabled",
 		Env:             "PORTAGE_IMAGE_SCAN_ENABLED",
-		Default:         true,
+		Default:         nil,
 		ActionInputName: "image_scan_enabled",
 		ActionType:      "Bool",
 		Description:     "Enable/Disable the image scan pipeline",
@@ -197,7 +199,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_SCAN_SYFT_FILENAME",
 		ActionInputName: "syft_filename",
 		ActionType:      "String",
-		Default:         "syft-sbom-report.json",
+		Default:         nil,
 		Description:     "The filename for the syft SBOM report - must contain 'syft'",
 	},
 	{
@@ -213,7 +215,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_SCAN_GRYPE_FILENAME",
 		ActionInputName: "grype_filename",
 		ActionType:      "String",
-		Default:         "grype-vulnerability-report-full.json",
+		Default:         nil,
 		Description:     "The filename for the grype vulnerability report - must contain 'grype'",
 	},
 	{
@@ -221,7 +223,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME",
 		ActionInputName: "clamav_filename",
 		ActionType:      "String",
-		Default:         "clamav-virus-report.txt",
+		Default:         nil,
 		Description:     "The filename for the clamscan virus report - must contain 'clamav'",
 	},
 
@@ -230,7 +232,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_ENABLED",
 		ActionInputName: "code_scan_enabled",
 		ActionType:      "Bool",
-		Default:         true,
+		Default:         nil,
 		Description:     "Enable/Disable the code scan pipeline",
 	},
 	{
@@ -238,7 +240,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_GITLEAKS_FILENAME",
 		ActionInputName: "gitleaks_filename",
 		ActionType:      "String",
-		Default:         "gitleaks-secrets-report.json",
+		Default:         nil,
 		Description:     "The filename for the gitleaks secret report - must contain 'gitleaks'",
 	},
 	{
@@ -246,7 +248,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_GITLEAKS_SRC_DIR",
 		ActionInputName: "gitleaks_src_dir",
 		ActionType:      "String",
-		Default:         ".",
+		Default:         nil,
 		Description:     "The target directory for the gitleaks scan",
 	},
 	{
@@ -254,7 +256,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_SEMGREP_FILENAME",
 		ActionInputName: "semgrep_filename",
 		ActionType:      "String",
-		Default:         "semgrep-sast-report.json",
+		Default:         nil,
 		Description:     "The filename for the semgrep SAST report - must contain 'semgrep'",
 	},
 	{
@@ -262,7 +264,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_SEMGREP_RULES",
 		ActionInputName: "semgrep_rules",
 		ActionType:      "String",
-		Default:         "p/default",
+		Default:         nil,
 		Description:     "Semgrep ruleset manual override",
 	},
 	{
@@ -270,7 +272,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL",
 		ActionInputName: "semgrep_experimental",
 		ActionType:      "Bool",
-		Default:         false,
+		Default:         nil,
 		Description:     "Enable the use of the semgrep experimental CLI",
 	},
 	{
@@ -278,7 +280,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_SEMGREP_SRC_DIR",
 		ActionInputName: "semgrep_src_dir",
 		ActionType:      "String",
-		Default:         ".",
+		Default:         nil,
 		Description:     "The target directory for the semgrep scan",
 	},
 	{
@@ -286,7 +288,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_CODE_SCAN_COVERAGE_FILE",
 		ActionInputName: "coverage_file",
 		ActionType:      "String",
-		Default:         "",
+		Default:         nil,
 		Description:     "An externally generated code coverage file to validate",
 	},
 
@@ -295,7 +297,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_PUBLISH_ENABLED",
 		ActionInputName: "image_publish_enabled",
 		ActionType:      "Bool",
-		Default:         true,
+		Default:         nil,
 		Description:     "Enable/Disable the image publish pipeline",
 	},
 	{
@@ -303,7 +305,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG",
 		ActionInputName: "bundle_publish_tag",
 		ActionType:      "String",
-		Default:         "",
+		Default:         nil,
 		Description:     "The full image tag for the target gatecheck bundle image blob",
 	},
 
@@ -312,7 +314,7 @@ var metaConfig = []metaConfigField{
 		Env:             "PORTAGE_DEPLOY_ENABLED",
 		ActionInputName: "deploy_enabled",
 		ActionType:      "Bool",
-		Default:         true,
+		Default:         nil,
 		Description:     "Enable/Disable the deploy pipeline",
 	},
 	{
@@ -323,6 +325,118 @@ var metaConfig = []metaConfigField{
 		Default:         nil,
 		Description:     "The filename for the gatecheck config",
 	},
+}
+
+// Add this near the top of the file with other type definitions
+type defaultValues struct {
+	value      any
+	configPath string
+}
+
+// Add this after type definitions but before metaConfig
+var defaults = map[string]defaultValues{
+	"imagetag":                {value: "my-app:latest", configPath: "ImageTag"},
+	"artifactdir":             {value: "artifacts", configPath: "ArtifactDir"},
+	"gatecheckbundlefilename": {value: "gatecheck-bundle.tar.gz", configPath: "GatecheckBundleFilename"},
+
+	"imagebuild.enabled":      {value: true, configPath: "ImageBuild.Enabled"},
+	"imagebuild.builddir":     {value: ".", configPath: "ImageBuild.BuildDir"},
+	"imagebuild.dockerfile":   {value: "Dockerfile", configPath: "ImageBuild.Dockerfile"},
+	"imagebuild.squashlayers": {value: false, configPath: "ImageBuild.SquashLayers"},
+
+	"imagescan.enabled":        {value: true, configPath: "ImageScan.Enabled"},
+	"imagescan.syftfilename":   {value: "syft-sbom-report.json", configPath: "ImageScan.SyftFilename"},
+	"imagescan.grypefilename":  {value: "grype-vulnerability-report-full.json", configPath: "ImageScan.GrypeFilename"},
+	"imagescan.clamavfilename": {value: "clamav-virus-report.txt", configPath: "ImageScan.ClamavFilename"},
+
+	"codescan.enabled":             {value: true, configPath: "CodeScan.Enabled"},
+	"codescan.gitleaksfilename":    {value: "gitleaks-secrets-report.json", configPath: "CodeScan.GitleaksFilename"},
+	"codescan.gitleakssrcdir":      {value: ".", configPath: "CodeScan.GitleaksSrcDir"},
+	"codescan.semgrepfilename":     {value: "semgrep-sast-report.json", configPath: "CodeScan.SemgrepFilename"},
+	"codescan.semgreprules":        {value: "p/default", configPath: "CodeScan.SemgrepRules"},
+	"codescan.semgrepexperimental": {value: false, configPath: "CodeScan.SemgrepExperimental"},
+	"codescan.semgrepsrcdir":       {value: ".", configPath: "CodeScan.SemgrepSrcDir"},
+
+	"imagepublish.enabled": {value: true, configPath: "ImagePublish.Enabled"},
+
+	"deploy.enabled":                 {value: true, configPath: "Deploy.Enabled"},
+	"deploy.gatecheckconfigfilename": {value: ".gatecheck.yml", configPath: "Deploy.GatecheckConfigFilename"},
+}
+
+// Update metaConfig to use the shared defaults
+func init() {
+	for idx, field := range metaConfig {
+		if defaultVal, exists := defaults[field.Key]; exists {
+			metaConfig[idx].Default = defaultVal.value
+		}
+	}
+}
+
+// Add this new function
+func NewDefaultConfig() *Config {
+	config := &Config{}
+
+	// Use reflection to set the default values
+	configValue := reflect.ValueOf(config).Elem()
+
+	for _, defaultVal := range defaults {
+		if defaultVal.value == nil {
+			continue
+		}
+
+		path := strings.Split(defaultVal.configPath, ".")
+		current := configValue
+
+		// Navigate nested structs
+		for i, field := range path {
+			if i == len(path)-1 {
+				// Set the final field value
+				fieldValue := current.FieldByName(field)
+				if fieldValue.IsValid() && fieldValue.CanSet() {
+					fieldValue.Set(reflect.ValueOf(defaultVal.value))
+				}
+			} else {
+				// Navigate to nested struct
+				current = current.FieldByName(field)
+			}
+		}
+	}
+
+	return config
+}
+
+// Add this method to Config struct
+func (c *Config) ToMap() map[string]interface{} {
+	// Use reflection to convert the config to a map
+	configMap := make(map[string]interface{})
+	val := reflect.ValueOf(c).Elem()
+	typ := val.Type()
+
+	var addToMap func(prefix string, v reflect.Value, t reflect.Type)
+	addToMap = func(prefix string, v reflect.Value, t reflect.Type) {
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			value := v.Field(i)
+
+			key := field.Tag.Get("mapstructure")
+			if key == "" {
+				key = strings.ToLower(field.Name)
+			}
+
+			if prefix != "" {
+				key = prefix + "." + key
+			}
+
+			if value.Kind() == reflect.Struct {
+				addToMap(key, value, field.Type)
+			} else {
+				configMap[key] = value.Interface()
+			}
+		}
+	}
+
+	addToMap("", val, typ)
+	return configMap
 }
 
 func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, error) {
@@ -357,7 +471,7 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 	for _, additionalInput := range additionalInputs {
 		parts := strings.SplitN(additionalInput, ":", 4)
 		if len(parts) < 4 {
-			return nil, fmt.Errorf("Invalid additional input specification: %s", additionalInput)
+			return nil, fmt.Errorf("invalid additional input specification: %s", additionalInput)
 		}
 		fields = append(fields, metaConfigField{
 			Key:             parts[0],
