@@ -108,6 +108,10 @@ WORKDIR /app
 
 ENV PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL="true"
 
+# Create non-root user and group
+RUN addgroup -S portage && adduser -S portage -G portage
+USER portage
+
 ENTRYPOINT ["portage"]
 
 LABEL org.opencontainers.image.title="portage-docker"
@@ -144,7 +148,8 @@ LABEL org.opencontainers.image.title="portage-podman"
 
 FROM portage-base
 
-# Install docker CLI
+USER root
 RUN apk update && apk add --no-cache docker-cli-buildx
+USER portage
 
 LABEL org.opencontainers.image.title="portage-docker"
