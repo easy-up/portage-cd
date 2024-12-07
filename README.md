@@ -52,15 +52,17 @@ go build -ldflags="-X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommi
 ```
 
 
-## Running A Pipeline
+## Getting Details of the Portage Pipeline Tooling
 
-You can run the executable directory
+To view tooling details, run the following command:
 
 ```bash
 portage run debug
 ```
 
 ## Configuring a Pipeline
+
+Portage uses a number of configuration sources to determine the behavior of the pipeline.  The order of precedence is as follows:
 
 Configuration Options:
 
@@ -77,6 +79,12 @@ Configuration Order-of-Precedence:
 3. Config File Value
 4. Default Value
 
+The recommended way to configure portage is to create a `.portage.yml` file in the root of your project.  To generate a sample configuration file, run the following command:
+
+```bash
+portage config init .portage.yml
+```
+
 Note: `(none)` means unset, left blank
 
 | Config Key                        | Environment Variable                     | Default Value                        | Description                                                                        |
@@ -87,8 +95,8 @@ Note: `(none)` means unset, left blank
 | codescan.semgrepfilename          | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
 | codescan.semgreprules             | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
 | codescan.semgrepexperimental      | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL   | false                                | Enable the use of the semgrep experimental CLI                                     |
-| deploy.enabled                    | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the deploy pipeline                                                 |
-| deploy.gatecheckconfigfilename    | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | -                                    | The filename for the gatecheck config                                              |
+| deploy.enabled                    | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the publishing to a registry pipeline                                                 |
+| deploy.gatecheckconfigfilename    | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | .gatecheck.yml                                    | The filename for the gatecheck config                                              |
 | gatecheckbundlefilename           | PORTAGE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |
 | imagebuild.args                   | PORTAGE_IMAGE_BUILD_ARGS                 | -                                    | Comma seperated list of build time variables                                       |
 | imagebuild.builddir               | PORTAGE_IMAGE_BUILD_DIR                  | .                                    | The build directory to using during an image build                                 |
@@ -107,6 +115,14 @@ Note: `(none)` means unset, left blank
 | imagescan.grypefilename           | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
 | imagescan.syftfilename            | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
 
+The portage pipeline is broken into a number of stages.  Below are the stages and their purpose:
+
+- `code-scan`: Scans the application code for secrets
+- `image-build`: Builds the application image
+- `image-scan`: Scans the application image for vulnerabilities
+- `image-publish`: Publishes the application image to a registry
+
+Note you cannot run image scan or publish without running the image build stage.
 
 ## Running in Docker
 

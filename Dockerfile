@@ -122,8 +122,11 @@ LABEL io.artifacthub.package.license="Apache-2.0"
 
 FROM portage-base AS portage-podman
 
-# Install podman CLIs
-RUN apk update && apk add --no-cache podman fuse-overlayfs
+USER root
+# Update repositories and install packages
+RUN apk add --no-cache --update-cache \
+    podman \
+    fuse-overlayfs
 
 COPY docker/storage.conf /etc/containers/
 COPY docker/containers.conf /etc/containers/
@@ -134,15 +137,17 @@ RUN addgroup -S podman && adduser -S podman -G podman && \
 
 COPY docker/rootless-containers.conf /home/podman/.config/containers/containers.conf
 
-RUN mkdir -p /home/podman/.local/share/containers
-RUN chown podman:podman -R /home/podman
+RUN mkdir -p /home/podman/.local/share/containers && \
+    chown podman:podman -R /home/podman && \
+    mkdir -p /var/lib/clamav && \
+    chown podman /var/lib/clamav && \
+    chown podman /etc/clamav && \
+    chmod g+w /var/lib/clamav
 
 VOLUME /var/lib/containers
 VOLUME /home/podman/.local/share/containers
 
-RUN mkdir -p /var/lib/clamav
-RUN chown podman /var/lib/clamav && chown podman /etc/clamav
-RUN chmod g+w /var/lib/clamav
+USER podman
 
 LABEL org.opencontainers.image.title="portage-podman"
 
