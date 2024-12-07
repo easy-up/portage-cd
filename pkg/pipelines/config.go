@@ -335,6 +335,7 @@ type defaultValues struct {
 
 // Add this after type definitions but before metaConfig
 var defaults = map[string]defaultValues{
+	"config":                  {value: ".portage.yml", configPath: ""},
 	"imagetag":                {value: "my-app:latest", configPath: "ImageTag"},
 	"artifactdir":             {value: "artifacts", configPath: "ArtifactDir"},
 	"gatecheckbundlefilename": {value: "gatecheck-bundle.tar.gz", configPath: "GatecheckBundleFilename"},

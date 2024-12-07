@@ -14,7 +14,8 @@ var (
 )
 
 func NewPortageCommand() *cobra.Command {
-	viper.SetConfigName("portage")
+	viper.SetConfigName(".portage")
+	viper.SetConfigType("yml")
 	viper.AddConfigPath(".")
 	pipelines.BindViper(viper.GetViper())
 
