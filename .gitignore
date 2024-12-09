@@ -5,5 +5,5 @@ test/.artifacts
 test/artifacts
 artifacts
 libpod/
-
+.env.local
 dist/

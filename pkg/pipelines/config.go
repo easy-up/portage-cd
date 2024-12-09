@@ -67,6 +67,7 @@ type configImagePublish struct {
 type configDeploy struct {
 	Enabled                 bool   `mapstructure:"enabled"`
 	GatecheckConfigFilename string `mapstructure:"gatecheckConfigFilename"`
+	Submit                  bool   `mapstructure:"submit"`
 }
 
 // metaConfigField is used to map viper values to env variables and their associated default values

@@ -76,3 +76,9 @@ func GatecheckValidate(options ...OptionFunc) error {
 	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
+
+func GatecheckSubmit(options ...OptionFunc) error {
+	o := newOptions(options...)
+	cmd := exec.Command("gatecheck", "submit", "--config", o.configFilename, o.targetFilename)
+	return run(cmd, o)
+}
