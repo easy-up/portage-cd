@@ -121,5 +121,18 @@ func (p *Deploy) Run() error {
 		return mkDeploymentError(err)
 	}
 
+	if p.config.Deploy.Submit {
+		err = shell.GatecheckSubmit(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithStderr(p.Stderr),
+			shell.WithStdout(p.Stdout),
+			shell.WithTargetFile(p.runtime.bundleFilename),
+			shell.WithConfigFile(gatecheckConfigPath),
+		)
+		if err != nil {
+			return mkDeploymentError(err)
+		}
+	}
+
 	return nil
 }

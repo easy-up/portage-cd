@@ -78,7 +78,9 @@ func newRunCommand() *cobra.Command {
 	// run deploy
 	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeploy)
 	deployCmd.Flags().String("gatecheck-config", "", "gatecheck configuration file")
+	deployCmd.Flags().Bool("submit", false, "submit artifacts to configured API endpoint")
 	_ = viper.BindPFlag("deploy.gatecheckconfigfilename", deployCmd.Flags().Lookup("gatecheck-config"))
+	_ = viper.BindPFlag("deploy.submit", deployCmd.Flags().Lookup("submit"))
 
 	// run image-delivery
 
