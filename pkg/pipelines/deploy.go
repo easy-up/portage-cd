@@ -122,12 +122,17 @@ func (p *Deploy) Run() error {
 	}
 
 	if p.config.Deploy.Submit {
+		configPath := gatecheckConfigPath
+		if p.config.Deploy.GatecheckConfigFilename != "" {
+			configPath = p.config.Deploy.GatecheckConfigFilename
+		}
+
 		err = shell.GatecheckSubmit(
 			shell.WithDryRun(p.DryRunEnabled),
 			shell.WithStderr(p.Stderr),
 			shell.WithStdout(p.Stdout),
 			shell.WithTargetFile(p.runtime.bundleFilename),
-			shell.WithConfigFile(gatecheckConfigPath),
+			shell.WithConfigFile(configPath),
 		)
 		if err != nil {
 			return mkDeploymentError(err)
