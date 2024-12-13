@@ -14,40 +14,6 @@ var (
 )
 
 func NewPortageCommand() *cobra.Command {
-	viper.SetConfigName(".portage")
-	viper.SetConfigType("yml")
-	viper.AddConfigPath(".")
-	pipelines.BindViper(viper.GetViper())
-
-	// Load default config
-	config := new(pipelines.Config)
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			slog.Info("no config file specified for this command, using defaults if applicable")
-		} else {
-			slog.Error("error reading config file", "error", err)
-		}
-	} else {
-		slog.Info("using config file", "path", viper.ConfigFileUsed())
-	}
-
-	if err := viper.Unmarshal(config); err != nil {
-		slog.Error("failed to parse config", "error", err)
-	}
-
-	// Debug log the full config
-	slog.Debug("loaded configuration",
-		"version", config.Version,
-		"imageTag", config.ImageTag,
-		"artifactDir", config.ArtifactDir,
-		"gatecheckBundleFilename", config.GatecheckBundleFilename,
-		"imageBuild", config.ImageBuild,
-		"imageScan", config.ImageScan,
-		"codeScan", config.CodeScan,
-		"imagePublish", config.ImagePublish,
-		"deploy", config.Deploy)
-
-	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd := &cobra.Command{
 		Use:              "portage",
 		Short:            "A portable, opinionated security pipeline",
@@ -59,11 +25,21 @@ func NewPortageCommand() *cobra.Command {
 	cmd.PersistentFlags().BoolP("silent", "q", false, "only log errors")
 	cmd.MarkFlagsMutuallyExclusive("verbose", "silent")
 
+	// Add config flag
+	cmd.PersistentFlags().String("config", "", "path to config file")
+	viper.BindPFlag("config", cmd.PersistentFlags().Lookup("config"))
+
+	// Basic viper setup
+	viper.SetConfigType("yml")
+	viper.AddConfigPath(".")
+	pipelines.BindViper(viper.GetViper())
+
 	// Turn off usage after an error occurs which polutes the terminal
 	cmd.SilenceUsage = true
 	cmd.SilenceErrors = true
 
 	// Add Sub-commands
+	versionCmd := newBasicCommand("version", "print version information", runVersion)
 	cmd.AddCommand(newConfigCommand(), newRunCommand(), versionCmd)
 
 	return cmd
@@ -72,6 +48,24 @@ func NewPortageCommand() *cobra.Command {
 func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
 	silentFlag, _ := cmd.Flags().GetBool("silent")
+
+	// Handle config file
+	if configFile := viper.GetString("config"); configFile != "" {
+		viper.SetConfigFile(configFile)
+	} else {
+		viper.SetConfigName(".portage")
+	}
+
+	// Try to read config file
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			slog.Info("no config file specified for this command, using defaults if applicable")
+		} else {
+			slog.Error("error reading config file", "error", err)
+		}
+	} else {
+		slog.Info("using config file", "path", viper.ConfigFileUsed())
+	}
 
 	switch {
 	case verboseFlag:
