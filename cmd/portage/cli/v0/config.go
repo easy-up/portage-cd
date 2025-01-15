@@ -4,7 +4,9 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path"
 	"portage/pkg/pipelines"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,9 +23,14 @@ func newConfigCommand() *cobra.Command {
 
 	// config vars
 	varsCmd := newBasicCommand("vars", "list supported builtin variables that can be used in templates", runConfigVars)
+	varsCmd.Flags().String("output", "", "Output format (json, yaml)")
 
 	// config render
-	renderCmd := newBasicCommand("render <TO CONFIG FILE>.[json|yaml|yml|toml] <FROM TEMPLATE>.[json|yaml|yml|toml]", "render a configuration template config using builtin variables", runConfigRender)
+	renderCmd := newBasicCommand(
+		"render <TO CONFIG FILE>.[json|yaml|yml|toml] <FROM TEMPLATE>.[json|yaml|yml|toml]",
+		"render a configuration template using builtin variables (e.g., 'portage config render config.yaml template.yaml')",
+		runConfigRender,
+	)
 	renderCmd.Args = cobra.ExactArgs(2)
 
 	// config convert
@@ -58,7 +65,7 @@ func runGenAllAction(cmd *cobra.Command, args []string) error {
 func runConfigInfo(cmd *cobra.Command, args []string) error {
 	config := new(pipelines.Config)
 
-	if err := LoadOrDefault(args[0], config, viper.GetViper()); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
 	return ListConfig(cmd.OutOrStdout(), viper.GetViper())
@@ -67,13 +74,21 @@ func runConfigInfo(cmd *cobra.Command, args []string) error {
 func runConfigInit(cmd *cobra.Command, args []string) error {
 	toConfigFilename := args[0]
 
-	config := new(pipelines.Config)
+	// Create a new default config
+	config := pipelines.NewDefaultConfig()
 
-	if err := LoadOrDefault(toConfigFilename, config, viper.GetViper()); err != nil {
+	// Create a new viper instance to avoid interference with global viper settings
+	v := viper.New()
+	v.SetConfigFile(toConfigFilename)
+	v.SetConfigType(strings.TrimPrefix(path.Ext(toConfigFilename), "."))
+
+	// Convert config to map for viper
+	if err := v.MergeConfigMap(config.ToMap()); err != nil {
 		return err
 	}
 
-	return nil
+	// Write the config file to the specified filename
+	return v.WriteConfigAs(toConfigFilename)
 }
 
 func runGenMarkdown(cmd *cobra.Command, args []string) error {
@@ -87,7 +102,9 @@ func runGenActionMarkdown(cmd *cobra.Command, args []string) error {
 
 func runConfigVars(cmd *cobra.Command, _ []string) error {
 	output, _ := cmd.Flags().GetString("output")
-
+	if output == "" {
+		output = "yaml"
+	}
 	return writeBuiltins(cmd.OutOrStdout(), output)
 }
 
