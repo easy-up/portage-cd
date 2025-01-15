@@ -7,5 +7,3 @@ artifacts
 libpod/
 .env.local
 dist/
-.portage.yml
-.custom-gatecheck.yml
