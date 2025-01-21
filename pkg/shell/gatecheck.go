@@ -76,10 +76,3 @@ func GatecheckValidate(options ...OptionFunc) error {
 	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
-
-func GatecheckSubmit(options ...OptionFunc) error {
-	o := newOptions(options...)
-	// TODO: remove verbose once we are at MVP
-	cmd := exec.Command("gatecheck", "submit", "--config", o.configFilename, o.targetFilename, "--verbose")
-	return run(cmd, o)
-}

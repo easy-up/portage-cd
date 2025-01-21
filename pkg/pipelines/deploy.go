@@ -1,13 +1,17 @@
 package pipelines
 
 import (
+	"bytes"
 	_ "embed"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
+	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"portage/pkg/shell"
 
 	"github.com/jarxorg/tree"
@@ -54,6 +58,7 @@ func (p *Deploy) Run() error {
 		slog.Warn("deployment pipeline disabled, skip.")
 		return nil
 	}
+
 	if err := p.preRun(); err != nil {
 		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
@@ -121,22 +126,73 @@ func (p *Deploy) Run() error {
 		return mkDeploymentError(err)
 	}
 
-	if p.config.Deploy.Submit {
-		configPath := gatecheckConfigPath
-		if p.config.Deploy.GatecheckConfigFilename != "" {
-			configPath = p.config.Deploy.GatecheckConfigFilename
-		}
+	for i, hook := range p.config.Deploy.SuccessWebhooks {
+		slog.Debug("submitting deployment success webhook", "webhook", hook, "index", i)
 
-		err = shell.GatecheckSubmit(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithStderr(p.Stderr),
-			shell.WithStdout(p.Stdout),
-			shell.WithTargetFile(p.runtime.bundleFilename),
-			shell.WithConfigFile(configPath),
-		)
+		// Send a POST request with the bundle file in a multipart form
+		bundleFile, err := os.Open(p.runtime.bundleFilename)
 		if err != nil {
+			slog.Error("failed to open bundle file", "error", err)
 			return mkDeploymentError(err)
 		}
+		defer bundleFile.Close()
+
+		var requestBody bytes.Buffer
+		writer := multipart.NewWriter(&requestBody)
+
+		writer.WriteField("action", "deploy")
+		writer.WriteField("status", "success")
+
+		bundleFilePart, err := writer.CreateFormFile("bundle", filepath.Base(p.runtime.bundleFilename))
+		if err != nil {
+			slog.Error("failed to create form file", "error", err)
+			return mkDeploymentError(err)
+		}
+
+		_, err = io.Copy(bundleFilePart, bundleFile)
+		if err != nil {
+			slog.Error("failed to copy file content to form part", "error", err)
+			return mkDeploymentError(err)
+		}
+
+		err = writer.Close()
+		if err != nil {
+			slog.Error("failed to close multipart writer", "error", err)
+			return mkDeploymentError(err)
+		}
+
+		req, err := http.NewRequest("POST", hook.Url, &requestBody)
+		if err != nil {
+			slog.Error("failed to create HTTP request", "error", err)
+			return mkDeploymentError(err)
+		}
+
+		// Set the Content-Type header to the multipart writer's content type
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		if hook.AuthorizationVar != "" {
+			authValue := os.Getenv(hook.AuthorizationVar)
+			if authValue != "" {
+				req.Header.Set("Authorization", authValue)
+			} else {
+				slog.Warn("authorization environment variable is empty", "envVar", hook.AuthorizationVar)
+			}
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			slog.Error("failed to execute HTTP request", "error", err)
+			return mkDeploymentError(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			slog.Error("webhook returned non-success status", "status", resp.StatusCode)
+			return fmt.Errorf("webhook request failed with status: %d", resp.StatusCode)
+		}
+
+		slog.Info("successfully submitted deployment success webhook", "webhook", hook)
 	}
 
 	return nil

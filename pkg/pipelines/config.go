@@ -28,6 +28,11 @@ type Config struct {
 	Deploy                  configDeploy       `mapstructure:"deploy"`
 }
 
+type webhookConfig struct {
+	Url              string `mapstructure:"url"`
+	AuthorizationVar string `mapstructure:"authorizationVar"`
+}
+
 type configImageBuild struct {
 	Enabled      bool     `mapstructure:"enabled"`
 	BuildDir     string   `mapstructure:"buildDir"`
@@ -65,9 +70,9 @@ type configImagePublish struct {
 }
 
 type configDeploy struct {
-	Enabled                 bool   `mapstructure:"enabled"`
-	GatecheckConfigFilename string `mapstructure:"gatecheckConfigFilename"`
-	Submit                  bool   `mapstructure:"submit"`
+	Enabled                 bool            `mapstructure:"enabled"`
+	GatecheckConfigFilename string          `mapstructure:"gatecheckConfigFilename"`
+	SuccessWebhooks         []webhookConfig `mapstructure:"successWebhooks"`
 }
 
 // metaConfigField is used to map viper values to env variables and their associated default values

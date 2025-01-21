@@ -76,11 +76,9 @@ func newRunCommand() *cobra.Command {
 	_ = viper.BindPFlag("codescan.coveragefile", codeScanCmd.Flags().Lookup("coverage-file"))
 
 	// run deploy
-	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeploy)
+	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeployExplicit)
 	deployCmd.Flags().String("gatecheck-config", "", "gatecheck configuration file")
-	deployCmd.Flags().Bool("submit", false, "submit artifacts to configured API endpoint")
 	_ = viper.BindPFlag("deploy.gatecheckconfigfilename", deployCmd.Flags().Lookup("gatecheck-config"))
-	_ = viper.BindPFlag("deploy.submit", deployCmd.Flags().Lookup("submit"))
 
 	// run image-delivery
 
@@ -135,12 +133,17 @@ func runDebug(cmd *cobra.Command, _ []string) error {
 	return debugPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), dryRunEnabled)
 }
 
-func runDeploy(cmd *cobra.Command, _ []string) error {
+func runDeployExplicit(cmd *cobra.Command, args []string) error {
+	return runDeploy(cmd, args, true)
+}
+
+func runDeploy(cmd *cobra.Command, _ []string, force bool) error {
 	dryRunEnabled, _ := cmd.Flags().GetBool("dry-run")
 	config := new(pipelines.Config)
 	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
+	config.Deploy.Enabled = true
 	return deployPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 
@@ -211,7 +214,7 @@ func runAll(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return runDeploy(cmd, args)
+	return runDeploy(cmd, args, false)
 }
 
 // Execution functions - Logic for command execution
