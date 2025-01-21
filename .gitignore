@@ -6,4 +6,5 @@ test/artifacts
 artifacts
 libpod/
 .env.local
+.env
 dist/
