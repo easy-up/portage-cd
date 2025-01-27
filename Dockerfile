@@ -1,12 +1,14 @@
 ARG ALPINE_VERSION=3.20
 
 # Semgrep build is currently broken on alpine > 3.19
-FROM alpine:3.19 AS build-semgrep-core
+FROM alpine:$ALPINE_VERSION AS build-semgrep-core
 
-RUN apk add --no-cache bash build-base git make opam
+ARG OPAM_VERISON=4.14.0
 
-RUN opam init --compiler=4.14.0 --disable-sandboxing --no
-RUN opam switch 4.14.0
+RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make opam libpsl-dev zstd-static
+
+RUN --mount=type=cache,target=/root/.opam opam init --compiler=$OPAM_VERSION --disable-sandboxing --no
+RUN --mount=type=cache,target=/root/.opam opam switch $OPAM_VERSION
 
 WORKDIR /src
 
@@ -19,19 +21,17 @@ WORKDIR /src/semgrep
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
 # just concerned about installing external packages to maximize docker caching.
-RUN make install-deps-ALPINE-for-semgrep-core
-
-RUN apk add --no-cache zstd libpsl-dev
+RUN --mount=type=cache,target=/var/cache/apk make install-deps-ALPINE-for-semgrep-core
 
 ARG OPAMSOLVERTIMEOUT=1800
 
-# TODO: add --mount=type=cache,...
-RUN make install-deps-for-semgrep-core
+# Note: opam needs access to the apk cache to detect system packages
+RUN --mount=type=cache,target=/var/cache/apk --mount=type=cache,target=/root/.opam make install-deps-for-semgrep-core
 
 ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
 ARG DUNE_PROFILE=release
 
-RUN eval "$(opam env)" && \
+RUN --mount=type=cache,target=/root/.opam eval "$(opam env)" && \
     make minimal-build && \
     # Sanity check
     /src/semgrep/_build/default/src/main/Main.exe -version
