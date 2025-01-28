@@ -54,6 +54,14 @@ func (p *CodeScan) preRun() error {
 		return errors.New("code Scan Pipeline failed to run")
 	}
 
+	// Delete existing bundle file if it exists
+	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
+	if err := os.Remove(p.runtime.bundleFilename); err != nil && !errors.Is(err, os.ErrNotExist) {
+		slog.Error("failed to remove existing bundle file", "error", err)
+		return err
+	}
+	slog.Debug("cleaned up existing bundle file if it existed", "bundle", p.runtime.bundleFilename)
+
 	p.runtime.gitleaksFilename = path.Join(p.config.ArtifactDir, p.config.CodeScan.GitleaksFilename)
 	p.runtime.gitleaksFile, err = OpenOrCreateFile(p.runtime.gitleaksFilename)
 	if err != nil {

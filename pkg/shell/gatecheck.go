@@ -62,6 +62,11 @@ func GatecheckListAll(options ...OptionFunc) error {
 func GatecheckBundleAdd(options ...OptionFunc) error {
 	o := newOptions(options...)
 	args := []string{"bundle", "add", o.gatecheck.bundleFilename, o.gatecheck.targetFile}
+	if len(o.gatecheck.tags) > 0 {
+		for _, tag := range o.gatecheck.tags {
+			args = append(args, "--tag", tag)
+		}
+	}
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		args = append(args, "-v")
 	}
@@ -77,11 +82,29 @@ func GatecheckBundleAdd(options ...OptionFunc) error {
 func GatecheckBundleCreate(options ...OptionFunc) error {
 	o := newOptions(options...)
 	args := []string{"bundle", "create", o.gatecheck.bundleFilename, o.gatecheck.targetFile}
+	if len(o.gatecheck.tags) > 0 {
+		for _, tag := range o.gatecheck.tags {
+			args = append(args, "--tag", tag)
+		}
+	}
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		slog.Debug("debug logging enabled, adding verbose flag to gatecheck command")
 		args = append(args, "-v")
 	}
+	slog.Debug("executing gatecheck bundle create",
+		"bundle", o.gatecheck.bundleFilename,
+		"target", o.gatecheck.targetFile,
+		"tags", o.gatecheck.tags,
+		"args", args)
 	cmd := exec.Command("gatecheck", args...)
-	return run(cmd, o)
+	// Don't use errors_only for bundle creation to see all output
+	opts := []OptionFunc{
+		WithDryRun(o.dryRunEnabled),
+		WithLogger(o.logger),
+		WithStdout(o.stdout),
+		WithStderr(o.stderr),
+	}
+	return run(cmd, newOptions(opts...))
 }
 
 // GatecheckValidate validates artifacts in a bundle

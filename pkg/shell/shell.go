@@ -78,6 +78,8 @@ type Options struct {
 	gatecheck struct {
 		bundleFilename string
 		targetFile     string
+		label          string
+		tags           []string
 	}
 
 	semgrep struct {
@@ -235,6 +237,14 @@ func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
 	return func(o *Options) {
 		o.gatecheck.bundleFilename = bundleFilename
 		o.gatecheck.targetFile = targetFilename
+	}
+}
+
+// WithBundleLabel sets the label and optional tags for bundle operations
+func WithBundleLabel(label string, tags ...string) OptionFunc {
+	return func(o *Options) {
+		o.gatecheck.label = label
+		o.gatecheck.tags = tags
 	}
 }
 

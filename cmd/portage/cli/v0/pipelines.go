@@ -143,7 +143,9 @@ func runDeploy(cmd *cobra.Command, _ []string, force bool) error {
 	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
-	config.Deploy.Enabled = true
+	if force {
+		config.Deploy.Enabled = true
+	}
 	return deployPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
 
