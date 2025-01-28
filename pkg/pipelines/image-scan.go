@@ -363,13 +363,13 @@ func (p *ImageScan) gatecheckBundleJob(task *AsyncTask, syftTask *AsyncTask, gry
 		shell.WithErrorOnly(task.StderrPipeWriter),
 	}
 
-	syftOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.syftFilename), shell.WithWaitFunc(syftTask.Wait))
+	syftOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.syftFilename), shell.WithBundleTags("type:syft"), shell.WithWaitFunc(syftTask.Wait))
 	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(syftOpts...))
 
-	grypeOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.grypeFilename), shell.WithWaitFunc(grypeTask.Wait))
+	grypeOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.grypeFilename), shell.WithBundleTags("type:grype"), shell.WithWaitFunc(grypeTask.Wait))
 	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(grypeOpts...))
 
-	clamavOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.clamavFilename), shell.WithWaitFunc(clamscanTask.Wait))
+	clamavOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.clamavFilename), shell.WithBundleTags("type:clamscan"), shell.WithWaitFunc(clamscanTask.Wait))
 	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(clamavOpts...))
 }
 
