@@ -1,0 +1,22 @@
+version: "1"
+gitleaks:
+    limitEnabled: false
+grype:
+    epssRiskAcceptance:
+        enabled: true
+        score: 0.001
+    severityLimit:
+        critical:
+            enabled: true
+            limit: 0
+        high:
+            enabled: true
+            limit: 7
+semgrep:
+    impactRiskAcceptance:
+        enabled: true
+        low: true
+    severityLimit:
+        error:
+            enabled: true
+            limit: 5

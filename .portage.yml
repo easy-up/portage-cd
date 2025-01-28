@@ -1,0 +1,49 @@
+# Base Configuration
+version: "1"
+imageTag: "ghcr.io/easy-up/portage-cd:latest"      # The full image tag for the target container image (e.g. my-org/my-app:latest)
+artifactDir: "artifacts"                           # Directory for generated artifacts (e.g. ./artifacts)
+gatecheckBundleFilename: "gatecheck-bundle.tar.gz" # Filename for the gatecheck bundle (e.g. gatecheck-bundle.tar.gz)
+
+# Image Build Configuration
+imageBuild:
+  enabled: true            # Enable/Disable the image build pipeline (true/false)
+  buildDir: "."            # Build directory for image (e.g. ./cmd/portage)
+  dockerfile: "Dockerfile" # Dockerfile to use (e.g. ./cmd/portage/Dockerfile)
+  platform: ""             # Target platform (e.g. linux/amd64, linux/arm64)
+  target: ""               # Target stage for multi-stage builds (e.g. build, test, publish)
+  cacheTo: ""              # Cache export location (e.g. type=local,dest=path)
+  cacheFrom: ""            # Cache import location (e.g. type=local,src=path)
+  squashLayers: false      # Whether to squash layers (true/false)
+  args: {}                 # Build arguments (e.g. BUILD_ARGS=--build-arg=key=value)
+
+# Image Scan Configuration
+imageScan:
+  enabled: true                                         # Enable/Disable the image scan pipeline (true/false)
+  syftFilename: "syft-sbom-report.json"                 # Filename for the syft sbom report (e.g. syft-sbom-report.json)
+  grypeConfigFilename: ""                               # Filename for the grype config (e.g. grype-config.json)
+  grypeFilename: "grype-vulnerability-report-full.json" # Filename for the grype vulnerability report (e.g. grype-vulnerability-report-full.json)
+  clamavFilename: "clamav-virus-report.txt"             # Filename for the clamav virus report (e.g. clamav-virus-report.txt)
+
+# Code Scan Configuration
+codeScan:
+  enabled: true                                    # Enable/Disable the code scan pipeline (true/false)
+  gitleaksFilename: "gitleaks-secrets-report.json"
+  gitleaksSrcDir: "."
+  semgrepFilename: "semgrep-sast-report.json"      # Filename for the semgrep sast report (e.g. semgrep-sast-report.json)
+  semgrepRules: "p/default"                        # Semgrep rules to use (e.g. p/default)
+  semgrepExperimental: false                       # Whether to use experimental semgrep rules (true/false)
+  coverageFile: ""                                 # Externally generated code coverage file
+  semgrepSrcDir: "."                               # Target directory for semgrep scan (e.g. ./cmd/portage)
+
+# Image Publish Configuration
+imagePublish:
+  enabled: false                                        # Enable/Disable the image publish pipeline (true/false)
+  bundleTag: "ghcr.io/easy-up/portage-cd/bundle:latest" # Image tag for gatecheck bundle image blob (e.g. my-org/my-app:latest)
+
+# Deploy Configuration
+deploy:
+  enabled: false                                   # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
+  gatecheckConfigFilename: ".custom-gatecheck.yml" # Filename for gatecheck config which specifies the validation rules and limits applied during the deployment process
+  successWebhooks:
+    - url: "https://belay-api.dev.holomuatech.online/Build/SubmitArtifacts" # Using the same endpoint from .custom-gatecheck.yml for consistency
+      authorizationVar: "DEPLOY_WEBHOOK_AUTH_TOKEN"                         # Environment variable containing the auth token
