@@ -63,7 +63,7 @@ func (p *Deploy) Run() error {
 		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
 
-	slog.Warn("deployment pipeline is a beta feature. Only gatecheck validation will be conducted.")
+	slog.Warn("Deployments only work with Belay using a valid jwt.")
 
 	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
 	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)

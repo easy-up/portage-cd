@@ -1,0 +1,27 @@
+gitleaks:
+    limitEnabled: false
+grype:
+    epssRiskAcceptance:
+        enabled: true
+        score: 0.001
+    severityLimit:
+        critical:
+            enabled: true
+            limit: 0
+        high:
+            enabled: true
+            limit: 7
+semgrep:
+    impactRiskAcceptance:
+        enabled: true
+        low: true
+    severityLimit:
+        error:
+            enabled: true
+            limit: 5
+version: "1"
+api:
+  enabled: true
+  endpoint: "http://localhost:5168/Build/SubmitArtifacts"
+  skipVerify: true
+  authorizationVar: "DEPLOY_WEBHOOK_AUTH_TOKEN"

@@ -1,6 +1,9 @@
 package shell
 
-import "os/exec"
+import (
+	"log/slog"
+	"os/exec"
+)
 
 // GatecheckVersion print version information
 //
@@ -9,7 +12,11 @@ import "os/exec"
 // Output: to STDOUT
 func GatecheckVersion(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "version")
+	args := []string{"version"}
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
+	}
+	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
 
@@ -20,10 +27,15 @@ func GatecheckVersion(options ...OptionFunc) error {
 // Output: table to STDOUT
 func GatecheckList(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "list", "--input-type", o.reportType)
-	if o.listTargetFilename != "" {
-		cmd = exec.Command("gatecheck", "list", o.listTargetFilename)
+	args := []string{"list", "--input-type", o.reportType}
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
 	}
+	if o.listTargetFilename != "" {
+		cmd := exec.Command("gatecheck", "list", o.listTargetFilename)
+		return run(cmd, o)
+	}
+	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
 
@@ -34,7 +46,11 @@ func GatecheckList(options ...OptionFunc) error {
 // Output: table to STDOUT
 func GatecheckListAll(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "list", "--input-type", o.reportType)
+	args := []string{"list", "--input-type", o.reportType}
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
+	}
+	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
 
@@ -45,8 +61,11 @@ func GatecheckListAll(options ...OptionFunc) error {
 // Output: debug to STDERR
 func GatecheckBundleAdd(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "bundle", "add",
-		o.gatecheck.bundleFilename, o.gatecheck.targetFile)
+	args := []string{"bundle", "add", o.gatecheck.bundleFilename, o.gatecheck.targetFile}
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
+	}
+	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
 
@@ -57,8 +76,11 @@ func GatecheckBundleAdd(options ...OptionFunc) error {
 // Output: debug to STDERR
 func GatecheckBundleCreate(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", "bundle", "create",
-		o.gatecheck.bundleFilename, o.gatecheck.targetFile)
+	args := []string{"bundle", "create", o.gatecheck.bundleFilename, o.gatecheck.targetFile}
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
+	}
+	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
 
@@ -72,6 +94,10 @@ func GatecheckValidate(options ...OptionFunc) error {
 	args := []string{"validate", o.targetFilename}
 	if o.configFilename != "" {
 		args = append(args, "--config", o.configFilename)
+	}
+	// Pass through verbosity flag if portage is in verbose mode
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
 	}
 	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
