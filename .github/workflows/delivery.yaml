@@ -76,7 +76,10 @@ jobs:
     - name: Run Portage CD Scans
       uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@debug-docker-save
       with:
-        image_build_enabled: false
+        # for some reason we have to rebuild images for docker save to work
+        image_build_enabled: true
+        image_build_cache_from: "type=local,src=${{ github.workspace }}/.docker-cache"
+        image_build_cache_to: "type=local,dest=${{ github.workspace }}/.docker-cache,mode=max"
         image_publish_enabled: false
         tag: ${{ steps.vars.outputs.image_name }}
         build_args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
