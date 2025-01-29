@@ -173,7 +173,8 @@ func (p *Deploy) Run() error {
 		if hook.AuthorizationVar != "" {
 			authValue := os.Getenv(hook.AuthorizationVar)
 			if authValue != "" {
-				req.Header.Set("Authorization", authValue)
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authValue))
+				slog.Debug("added authorization header", "envVar", hook.AuthorizationVar)
 			} else {
 				slog.Warn("authorization environment variable is empty", "envVar", hook.AuthorizationVar)
 			}
@@ -187,9 +188,30 @@ func (p *Deploy) Run() error {
 		}
 		defer resp.Body.Close()
 
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			slog.Error("failed to read response body", "error", err)
+			return mkDeploymentError(err)
+		}
+
+		slog.Debug("received webhook response",
+			"status", resp.StatusCode,
+			"webhook", hook.Url,
+			"response_body", string(respBody),
+			"content_type", resp.Header.Get("Content-Type"))
+
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			slog.Error("webhook returned non-success status", "status", resp.StatusCode)
-			return fmt.Errorf("webhook request failed with status: %d", resp.StatusCode)
+			slog.Error("webhook returned non-success status",
+				"status", resp.StatusCode,
+				"response_body", string(respBody),
+				"webhook_url", hook.Url,
+				"error_details", map[string]interface{}{
+					"status_code": resp.StatusCode,
+					"headers":     resp.Header,
+					"body":        string(respBody),
+				})
+			return fmt.Errorf("webhook request failed with status: %d - response: %s - url: %s",
+				resp.StatusCode, string(respBody), hook.Url)
 		}
 
 		slog.Info("successfully submitted deployment success webhook", "webhook", hook)
