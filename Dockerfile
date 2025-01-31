@@ -3,12 +3,14 @@ ARG ALPINE_VERSION=3.20
 # Semgrep build is currently broken on alpine > 3.19
 FROM alpine:$ALPINE_VERSION AS build-semgrep-core
 
-ARG OPAM_VERISON=4.14.0
+ARG OPAM_VERSION=4.14.0
 
 RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make opam libpsl-dev zstd-static
 
-RUN --mount=type=cache,target=/root/.opam opam init --compiler=$OPAM_VERSION --disable-sandboxing --no
-RUN --mount=type=cache,target=/root/.opam opam switch $OPAM_VERSION
+RUN --mount=type=cache,target=/root/.opam \
+    opam init --compiler=$OPAM_VERSION --disable-sandboxing --no-setup && \
+    opam switch create $OPAM_VERSION && \
+    eval $(opam env)
 
 WORKDIR /src
 
