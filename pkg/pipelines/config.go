@@ -367,7 +367,7 @@ var defaults = map[string]defaultValues{
 	"imagepublish.enabled": {value: true, configPath: "ImagePublish.Enabled"},
 
 	"deploy.enabled":                 {value: true, configPath: "Deploy.Enabled"},
-	"deploy.gatecheckconfigfilename": {value: ".gatecheck.yml", configPath: "Deploy.GatecheckConfigFilename"},
+	"deploy.gatecheckconfigfilename": {value: "", configPath: "Deploy.GatecheckConfigFilename"},
 }
 
 // Update metaConfig to use the shared defaults
