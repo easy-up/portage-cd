@@ -1,0 +1,8 @@
+version: "1"
+
+grype:
+  cveRiskAcceptance:
+    enabled: true
+    cves:
+      # Grype mis-reports this vulnerability which was fixed in clamav >= 0.99.0 even though the apk installed version is >= 1.2.2
+      - id: CVE-2016-1405
