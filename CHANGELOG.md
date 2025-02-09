@@ -9,6 +9,10 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## [v0.0.4] - 2025-02-08
+
+* Updated golang dependencies and upgrade to OCAML v1.107.0
+
 ## [v0.0.3] - 2025-02-05
 
 * Add exclusion for ClamAV CVE-2016-1405
