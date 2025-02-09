@@ -1,19 +1,18 @@
 ARG ALPINE_VERSION=3.20
-ARG OPAM_VERSION=4.14.0
 
 # Semgrep build is currently broken on alpine > 3.19
 FROM alpine:$ALPINE_VERSION AS build-semgrep-core
 
-ARG OPAM_VERSION
+ARG OCAML_VERSION=5.2.1
 
 RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make opam libpsl-dev zstd-static
 
 RUN --mount=type=cache,target=/root/.opam \
-    opam init --compiler=$OPAM_VERSION --disable-sandboxing --no-setup
+    opam init --compiler=$OCAML_VERSION --disable-sandboxing --no-setup
 
 WORKDIR /src
 
-ARG SEMGREP_VERSION=v1.104.0
+ARG SEMGREP_VERSION=v1.107.0
 
 RUN git clone --recurse-submodules --branch ${SEMGREP_VERSION} --depth=1 --single-branch https://github.com/semgrep/semgrep
 
@@ -32,12 +31,10 @@ RUN --mount=type=cache,target=/var/cache/apk --mount=type=cache,target=/root/.op
 ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
 ARG DUNE_PROFILE=release
 
-ARG OPAM_VERSION
-
-RUN --mount=type=cache,target=/root/.opam eval "$(opam env --switch=$OPAM_VERSION)" && \
-    make minimal-build && \
-    # Sanity check
-    /src/semgrep/_build/default/src/main/Main.exe -version
+RUN --mount=type=cache,target=/root/.opam eval "$(opam env)" && \
+    make core
+# Sanity check
+RUN /src/semgrep/_build/install/default/bin/semgrep-core -version
 
 FROM golang:alpine$ALPINE_VERSION AS build-prerequisites
 
@@ -104,7 +101,7 @@ COPY --from=build-prerequisites /usr/local/bin/syft /usr/local/bin/syft
 COPY --from=build-prerequisites /usr/local/bin/gitleaks /usr/local/bin/gitleaks
 COPY --from=build-prerequisites /usr/local/bin/gatecheck /usr/local/bin/gatecheck
 COPY --from=build-prerequisites /usr/local/bin/oras /usr/local/bin/oras
-COPY --from=build-semgrep-core /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/osemgrep
+COPY --from=build-semgrep-core /src/semgrep/_build/install/default/bin/semgrep-core /usr/local/bin/osemgrep
 
 COPY --from=build /app/bin/portage /usr/local/bin/portage
 
