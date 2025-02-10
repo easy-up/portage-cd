@@ -54,14 +54,6 @@ func (p *CodeScan) preRun() error {
 		return errors.New("code Scan Pipeline failed to run")
 	}
 
-	// Delete existing bundle file if it exists
-	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
-	if err := os.Remove(p.runtime.bundleFilename); err != nil && !errors.Is(err, os.ErrNotExist) {
-		slog.Error("failed to remove existing bundle file", "error", err)
-		return err
-	}
-	slog.Debug("cleaned up existing bundle file if it existed", "bundle", p.runtime.bundleFilename)
-
 	p.runtime.gitleaksFilename = path.Join(p.config.ArtifactDir, p.config.CodeScan.GitleaksFilename)
 	p.runtime.gitleaksFile, err = OpenOrCreateFile(p.runtime.gitleaksFilename)
 	if err != nil {
@@ -248,17 +240,17 @@ func (p *CodeScan) gatecheckBundleJob(task *AsyncTask, semgrep *AsyncTask, gitle
 	}
 
 	// Add semgrep report file to the gatecheck bundle
-	semgrepOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.semgrepFilename), shell.WithWaitFunc(semgrep.Wait)})
+	semgrepOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.semgrepFilename), shell.WithBundleTags("type:semgrep"), shell.WithWaitFunc(semgrep.Wait)})
 	err := shell.GatecheckBundleAdd(semgrepOpts...)
 	task.ExitError = errors.Join(task.ExitError, err)
 
 	// Add gitleaks report file to the gatecheck bundle
-	gitleaksOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.gitleaksFilename), shell.WithWaitFunc(gitleaksTask.Wait)})
+	gitleaksOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.gitleaksFilename), shell.WithBundleTags("type:gitleaks"), shell.WithWaitFunc(gitleaksTask.Wait)})
 	err = shell.GatecheckBundleAdd(gitleaksOpts...)
 	task.ExitError = errors.Join(task.ExitError, err)
 
 	if p.runtime.coverageFile != "" {
-		coverageOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.coverageFile)})
+		coverageOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.coverageFile), shell.WithBundleTags("type:coverage")})
 		err = shell.GatecheckBundleAdd(coverageOpts...)
 		task.ExitError = errors.Join(task.ExitError, err)
 	}

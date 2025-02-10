@@ -70,19 +70,19 @@ func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) e
 		slog.Error("error checking bundle file", "bundle", bundleFilename, "error", err)
 	}
 
-	return AddBundleFile(dryRunEnabled, bundleFilename, tempConfigFilename, stderr)
+	return AddBundleFile(dryRunEnabled, bundleFilename, tempConfigFilename, "portage-config", stderr)
 }
 
-func AddBundleFile(dryRunEnabled bool, bundleFilename string, filename string, stderr io.Writer) error {
+func AddBundleFile(dryRunEnabled bool, bundleFilename string, filename string, artifactType string, stderr io.Writer) error {
 	slog.Debug("attempting to add file to bundle",
 		"bundle", bundleFilename,
 		"file", filename,
 		"dry_run", dryRunEnabled)
-
 	// Base options that are common for both create and add
 	opts := []shell.OptionFunc{
 		shell.WithDryRun(dryRunEnabled),
 		shell.WithBundleFile(bundleFilename, filename),
+		shell.WithBundleTags("type:" + artifactType),
 	}
 
 	// If we're in debug mode (verbose), show all output

@@ -97,14 +97,7 @@ func GatecheckBundleCreate(options ...OptionFunc) error {
 		"tags", o.gatecheck.tags,
 		"args", args)
 	cmd := exec.Command("gatecheck", args...)
-	// Don't use errors_only for bundle creation to see all output
-	opts := []OptionFunc{
-		WithDryRun(o.dryRunEnabled),
-		WithLogger(o.logger),
-		WithStdout(o.stdout),
-		WithStderr(o.stderr),
-	}
-	return run(cmd, newOptions(opts...))
+	return run(cmd, o)
 }
 
 // GatecheckValidate validates artifacts in a bundle

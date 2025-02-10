@@ -9,6 +9,33 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## [v0.0.4] - 2025-02-08
+
+* Updated golang dependencies and upgrade to OCAML v1.107.0
+
+## [v0.0.3] - 2025-02-05
+
+* Add exclusion for ClamAV CVE-2016-1405
+* Fixed more instances of the issue with ' in commit messages
+* Don't error when the default gatecheck config file does not exist.
+* Misc docker build fixes.
+* Upgrade gatecheck version
+* Moved docker cache to the GitHub runner temp folder to avoid creating untracked files.
+* Enable delivery pipeline on debug branches
+* Added caching to the Dockerfile and to the github action config.
+* Updated semgrep to v1.104 and fixed docker build issues
+* Implemented deployment pipeline success webhook.
+* Fixed justfile handling of ' in commit messages
+* Add .env to gitignore
+* fixed bug where the config flag did not supersede the default config file
+* have portage use the provided gatecheck config rather than the copied over config in the /artifacts directory
+* Leverage gatecheck submit functionality to send artifacts to Belay
+* additional fixes to make .portage.yml the recommended way to configure portage.
+* remediate some vulnerabilities found by semgrep and grype
+* Move to loading the configuration once at the portage command level.  Also, a few lint formatting fixes
+* Removed unfinished v1 CLI.
+* Updated config generation with new parameters.
+
 ## [v0.0.2] - 2024-10-23
 
 * Update gatecheck version to v0.8.0

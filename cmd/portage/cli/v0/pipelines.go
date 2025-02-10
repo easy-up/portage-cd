@@ -76,7 +76,7 @@ func newRunCommand() *cobra.Command {
 	_ = viper.BindPFlag("codescan.coveragefile", codeScanCmd.Flags().Lookup("coverage-file"))
 
 	// run deploy
-	deployCmd := newBasicCommand("deploy", "Beta Feature: VALIDATION ONLY - run gatecheck validate on artifacts from previous pipelines", runDeployExplicit)
+	deployCmd := newBasicCommand("deploy", "BETA FEATURE: The deploy command performs bundle validation and invokes webhooks. Actual deployment is performed via webhooks.", runDeployExplicit)
 	deployCmd.Flags().String("gatecheck-config", "", "gatecheck configuration file")
 	_ = viper.BindPFlag("deploy.gatecheckconfigfilename", deployCmd.Flags().Lookup("gatecheck-config"))
 

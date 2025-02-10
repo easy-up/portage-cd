@@ -240,10 +240,9 @@ func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
 	}
 }
 
-// WithBundleLabel sets the label and optional tags for bundle operations
-func WithBundleLabel(label string, tags ...string) OptionFunc {
+// WithBundleTags sets the label and optional tags for bundle operations
+func WithBundleTags(tags ...string) OptionFunc {
 	return func(o *Options) {
-		o.gatecheck.label = label
 		o.gatecheck.tags = tags
 	}
 }

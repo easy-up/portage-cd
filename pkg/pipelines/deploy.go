@@ -63,7 +63,7 @@ func (p *Deploy) Run() error {
 		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
 
-	slog.Warn("Deployments only work with Belay using a valid jwt.")
+	slog.Warn("BETA FEATURE: The deploy command performs bundle validation and invokes webhooks. Actual deployment is performed via webhooks.")
 
 	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
 	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -78,39 +78,40 @@ func (p *Deploy) Run() error {
 			return mkDeploymentError(err)
 		}
 
-		// Unmarshal the YAML into a map
-		var customConfig tree.Map
-		err = yaml.Unmarshal(customConfigFile, &customConfig)
+		err = mergeAndSaveGatecheckConfig(customConfigFile, gatecheckConfig)
 		if err != nil {
-			return mkDeploymentError(err)
-		}
-
-		var baseConfig tree.Map
-		err = yaml.Unmarshal([]byte(gatecheckDefaultConfig), &baseConfig)
-		if err != nil {
-			return mkDeploymentError(err)
-		}
-
-		// Merge the trees and write the result to gatecheckConfig os.File
-		mergedConfig := tree.Merge(baseConfig, customConfig, tree.MergeOptionReplaceArray|tree.MergeOptionOverrideMap)
-
-		b, err := yaml.Marshal(mergedConfig)
-		if err != nil {
-			return mkDeploymentError(err)
-		}
-		_, err = gatecheckConfig.Write(b)
-		if err != nil {
-			return mkDeploymentError(err)
+			return err
 		}
 	} else {
-		_, err = gatecheckConfig.Write([]byte(gatecheckDefaultConfig))
+		// Automatically handle an optional .gatecheck.yml or .gatecheck.yaml file in the working directory
+		// Unlike an explicitly specified configuration file, do not error if it does not exist.
+		customConfigFile, err := os.ReadFile(".gatecheck.yml")
 		if err != nil {
-			return mkDeploymentError(err)
+			if os.IsNotExist(err) {
+				customConfigFile, err = os.ReadFile(".gatecheck.yaml")
+				if err != nil && !os.IsNotExist(err) {
+					return mkDeploymentError(err)
+				}
+			} else {
+				// The file exists, but it isn't readable
+				return mkDeploymentError(err)
+			}
 		}
-		gatecheckConfig.Close()
+
+		if len(customConfigFile) > 0 {
+			err = mergeAndSaveGatecheckConfig(customConfigFile, gatecheckConfig)
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err = gatecheckConfig.Write([]byte(gatecheckDefaultConfig))
+			if err != nil {
+				return mkDeploymentError(err)
+			}
+		}
 	}
 
-	err = AddBundleFile(p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, p.Stderr)
+	err = AddBundleFile(p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr)
 	if err != nil {
 		return mkDeploymentError(err)
 	}
@@ -217,5 +218,33 @@ func (p *Deploy) Run() error {
 		slog.Info("successfully submitted deployment success webhook", "webhook", hook)
 	}
 
+	return nil
+}
+
+func mergeAndSaveGatecheckConfig(customConfigFile []byte, gatecheckConfig *os.File) error {
+	// Unmarshal the YAML into a map
+	var customConfig tree.Map
+	err := yaml.Unmarshal(customConfigFile, &customConfig)
+	if err != nil {
+		return mkDeploymentError(err)
+	}
+
+	var baseConfig tree.Map
+	err = yaml.Unmarshal([]byte(gatecheckDefaultConfig), &baseConfig)
+	if err != nil {
+		return mkDeploymentError(err)
+	}
+
+	// Merge the trees and write the result to gatecheckConfig os.File
+	mergedConfig := tree.Merge(baseConfig, customConfig, tree.MergeOptionReplaceArray|tree.MergeOptionOverrideMap)
+
+	b, err := yaml.Marshal(mergedConfig)
+	if err != nil {
+		return mkDeploymentError(err)
+	}
+	_, err = gatecheckConfig.Write(b)
+	if err != nil {
+		return mkDeploymentError(err)
+	}
 	return nil
 }
