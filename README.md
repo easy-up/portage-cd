@@ -140,10 +140,10 @@ This approach assumes you have the docker daemon running on your host machine.
 
 Example:
 
-```
+```bash
 docker run -it --rm \
   `# Mount your Dockerfile and supporting files in the working directory: /app` \
-  -v "$(pwd):/app:ro" \
+  -v "$(pwd):/app:rw" \
   `# Mount docker.sock for use by the docker CLI running inside the container` \
   -v "/var/run/docker.sock:/var/run/docker.sock" \
   `# Run the portage container with the desired arguments` \
@@ -163,7 +163,7 @@ In addition to building images with Docker it is also possible to build them wit
 ```bash
 docker run --user podman -it --rm \
   `# Mount your Dockerfile and supporting files in the working directory: /app` \
-  -v "$(pwd):/app:ro" \
+  -v "$(pwd):/app:rw" \
   `# Run the portage container with the desired arguments` \
   portage run image-build -i podman
 ```
@@ -173,7 +173,7 @@ If root access is needed, the easiest solution for using podman inside a docker 
 ```bash
 docker run -it --rm \
   `# Mount your Dockerfile and supporting files in the working directory: /app` \
-  -v "$(pwd):/app:ro" \
+  -v "$(pwd):/app:rw" \
   `# Run the container in privileged mode so that podman is fully functional` \
   --privileged \
   `# Run the portage container with the desired arguments` \
@@ -187,9 +187,44 @@ To run the portage container using podman the process is quite similar, but ther
 ```bash
 podman run --user podman  -it --rm \
   `# Mount your Dockerfile and supporting files in the working directory: /app` \
-  -v "$(pwd):/app:ro" \
+  -v "$(pwd):/app:rw" \
   `# Run the container with additional security options so that podman is fully functional` \
   --security-opt label=disable --device /dev/fuse \
   `# Run the portage container with the desired arguments` \
   portage run image-build -i podman
+```
+
+### Including your Global `.gitignore`
+
+If you use a global gitignore for files created by your IDE or editor, there may be scenarios where these files need to be ignored inside the Portage CD container as well.
+In order to have your global `.gitignore` applied inside the container you must take some additional steps.
+
+In order for a global gitignore to be effective, firstly the file must exist, and secondly git must be configured to use it.
+
+#### 1. Configure git to use a global gitignore inside the portage container
+
+```bash
+docker run -it --rm \
+  `# Mount a named docker volume to serve as the portage home folder` \
+  -v "portage-home:/home/portage:rw" \
+  `# Override the default entrypoint so that we can run a shell script \
+  --entrypoint sh \
+  `# Configure git to use a global .gitignore file` \
+  portage -c 'git config --global core.excludesFile "$HOME/.gitignore"'
+  ```
+
+#### 2. When running portage commands, use the configuration and a global gitignore file
+
+```bash
+docker run -it --rm \
+  `# Mount a named docker volume to serve as the portage home folder` \
+  -v "portage-home:/home/portage:rw" \
+  `# Mount your local gitignore as the global gitignore inside the container` \
+  -v "$(git config core.excludesfile):/home/portage/.gitignore:ro" \
+  `# Mount your Dockerfile and supporting files in the working directory: /app` \
+  -v "$(pwd):/app:rw" \
+  `# Mount docker.sock for use by the docker CLI running inside the container` \
+  -v "/var/run/docker.sock:/var/run/docker.sock" \
+  `# Run the portage container with the desired arguments` \
+  portage run image-build
 ```
