@@ -254,7 +254,11 @@ func deployPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config
 	pipeline := pipelines.NewDeploy(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
 
-	return pipeline.WithConfig(config).Run()
+	pipeline = pipeline.WithConfig(config)
+	if pipeline == nil {
+		return nil
+	}
+	return pipeline.Run()
 }
 
 func debugPipeline(stdout io.Writer, stderr io.Writer, dryRunEnabled bool) error {

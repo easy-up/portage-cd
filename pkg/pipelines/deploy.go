@@ -38,10 +38,17 @@ func NewDeploy(stdout io.Writer, stderr io.Writer) *Deploy {
 
 func (p *Deploy) WithConfig(config *Config) *Deploy {
 	p.config = config
+	if config != nil && !config.Deploy.Enabled {
+		slog.Warn("deploy pipeline is disabled, skipping.")
+		return nil
+	}
 	return p
 }
 
 func (p *Deploy) preRun() error {
+	if p == nil {
+		return nil
+	}
 	p.runtime.bundleFilename = path.Join(p.config.ArtifactDir, p.config.GatecheckBundleFilename)
 	return nil
 }
@@ -54,16 +61,15 @@ func mkDeploymentError(cause error) error {
 }
 
 func (p *Deploy) Run() error {
-	if !p.config.Deploy.Enabled {
-		slog.Warn("deployment pipeline disabled, skip.")
+	if p == nil {
 		return nil
 	}
+
+	slog.Warn("BETA FEATURE: The deploy command performs bundle validation and invokes webhooks. Actual deployment is performed via webhooks.")
 
 	if err := p.preRun(); err != nil {
 		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
-
-	slog.Warn("BETA FEATURE: The deploy command performs bundle validation and invokes webhooks. Actual deployment is performed via webhooks.")
 
 	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
 	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
