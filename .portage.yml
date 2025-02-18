@@ -1,6 +1,6 @@
 # Base Configuration
 version: "1"
-imageTag: "ghcr.io/easy-up/portage-cd:latest"      # The full image tag for the target container image (e.g. my-org/my-app:latest)
+imageTag: "ghcr.io/easy-up/portage-cd-belay:latest"      # The full image tag for the target container image (e.g. my-org/my-app:latest)
 artifactDir: "artifacts"                           # Directory for generated artifacts (e.g. ./artifacts)
 gatecheckBundleFilename: "gatecheck-bundle.tar.gz" # Filename for the gatecheck bundle (e.g. gatecheck-bundle.tar.gz)
 
@@ -37,12 +37,12 @@ codeScan:
 
 # Image Publish Configuration
 imagePublish:
-  enabled: false                                        # Enable/Disable the image publish pipeline (true/false)
+  enabled: true                                        # Enable/Disable the image publish pipeline (true/false)
   bundleTag: "ghcr.io/easy-up/portage-cd:latest"        # Image tag for gatecheck bundle image blob (e.g. my-org/my-app:latest)
 
 # Deploy Configuration
 deploy:
-  enabled: true                                   # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
+  enabled: false                                   # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
   gatecheckConfigFilename: ".custom-gatecheck.yml" # Filename for gatecheck config which specifies the validation rules and limits applied during the deployment process
   successWebhooks:
     - url: "https://belay-api.dev.holomuatech.online/Build/SubmitArtifacts" # Using the same endpoint from .custom-gatecheck.yml for consistency

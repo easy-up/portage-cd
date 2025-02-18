@@ -41,7 +41,8 @@ FROM golang:alpine$ALPINE_VERSION AS build-prerequisites
 ARG GRYPE_VERSION=v0.78.0
 ARG SYFT_VERSION=v1.5.0
 ARG GITLEAKS_VERSION=v8.18.3
-ARG GATECHECK_VERSION=v0.9.0
+ARG GATECHECK_VERSION=belay_main
+
 ARG ORAS_VERSION=v1.2.0
 
 RUN apk --no-cache add ca-certificates git make
@@ -78,6 +79,10 @@ ARG GIT_DESCRIPTION
 
 # install build dependencies
 RUN apk add --no-cache git
+
+# Configure git to use the mounted .gitignore_global file
+RUN git config --global core.excludesfile /root/.gitignore_global
+VOLUME /root/.gitignore_global
 
 WORKDIR /app/src
 
