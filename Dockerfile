@@ -42,7 +42,6 @@ ARG GRYPE_VERSION=v0.78.0
 ARG SYFT_VERSION=v1.5.0
 ARG GITLEAKS_VERSION=v8.18.3
 ARG GATECHECK_VERSION=belay_main
-
 ARG ORAS_VERSION=v1.2.0
 
 RUN apk --no-cache add ca-certificates git make
