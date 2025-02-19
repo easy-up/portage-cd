@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'main'
+      - '*main'
       - 'debug-*'
     tags: [ '*' ]
   pull_request:
