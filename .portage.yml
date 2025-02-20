@@ -38,7 +38,7 @@ codeScan:
 # Image Publish Configuration
 imagePublish:
   enabled: false                                        # Enable/Disable the image publish pipeline (true/false)
-  bundleTag: "ghcr.io/easy-up/portage-cd/bundle:latest" # Image tag for gatecheck bundle image blob (e.g. my-org/my-app:latest)
+  bundleTag: "ghcr.io/easy-up/portage-cd/bundle:latest" # Image tag for gatecheck artifact bundle (e.g. my-org/my-app/bundle:latest)
 
 # Deploy Configuration
 deploy:

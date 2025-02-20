@@ -199,28 +199,12 @@ podman run --user podman  -it --rm \
 If you use a global gitignore for files created by your IDE or editor, there may be scenarios where these files need to be ignored inside the Portage CD container as well.
 In order to have your global `.gitignore` applied inside the container you must take some additional steps.
 
-In order for a global gitignore to be effective, firstly the file must exist, and secondly git must be configured to use it.
-
-#### 1. Configure git to use a global gitignore inside the portage container
+In order for a global gitignore to be effective inside the container it needs to be mounted in the container in the configured location:
 
 ```bash
 docker run -it --rm \
-  `# Mount a named docker volume to serve as the portage home folder` \
-  -v "portage-home:/home/portage:rw" \
-  `# Override the default entrypoint so that we can run a shell script \
-  --entrypoint sh \
-  `# Configure git to use a global .gitignore file` \
-  portage -c 'git config --global core.excludesFile "$HOME/.gitignore"'
-  ```
-
-#### 2. When running portage commands, use the configuration and a global gitignore file
-
-```bash
-docker run -it --rm \
-  `# Mount a named docker volume to serve as the portage home folder` \
-  -v "portage-home:/home/portage:rw" \
   `# Mount your local gitignore as the global gitignore inside the container` \
-  -v "$(git config core.excludesfile):/home/portage/.gitignore:ro" \
+  -v "$(git config core.excludesfile):/home/portage/.gitignore_global:ro" \
   `# Mount your Dockerfile and supporting files in the working directory: /app` \
   -v "$(pwd):/app:rw" \
   `# Mount docker.sock for use by the docker CLI running inside the container` \
@@ -228,3 +212,5 @@ docker run -it --rm \
   `# Run the portage container with the desired arguments` \
   portage run image-build
 ```
+
+When using the podman container, the same technique can be used, but the home directory will be `/home/podman` instead of `/home/portage`.

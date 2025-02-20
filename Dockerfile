@@ -150,6 +150,9 @@ VOLUME /home/podman/.local/share/containers
 
 USER podman
 
+# Configure git to use the mounted .gitignore_global file
+RUN git config --global core.excludesfile /home/podman/.gitignore_global
+
 LABEL org.opencontainers.image.title="portage-podman"
 
 FROM portage-base
@@ -157,5 +160,8 @@ FROM portage-base
 USER root
 RUN apk update && apk add --no-cache docker-cli-buildx
 USER portage
+
+# Configure git to use the mounted .gitignore_global file
+RUN git config --global core.excludesfile /home/portage/.gitignore_global
 
 LABEL org.opencontainers.image.title="portage-docker"
