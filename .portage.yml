@@ -31,7 +31,9 @@ codeScan:
   gitleaksSrcDir: "."
   semgrepFilename: "semgrep-sast-report.json"      # Filename for the semgrep sast report (e.g. semgrep-sast-report.json)
   semgrepRules: "p/default"                        # Semgrep rules to use (e.g. p/default)
-  semgrepExperimental: false                       # Whether to use experimental semgrep rules (true/false)
+  # This is overridden in the portage Dockerfile, but is set to false here for runs on local systems
+  # where the standard Python semgrep is installed
+  semgrepExperimental: false                       # Whether to use the experimental semgrep CLI (true/false)
   coverageFile: ""                                 # Externally generated code coverage file
   semgrepSrcDir: "."                               # Target directory for semgrep scan (e.g. ./cmd/portage)
 
