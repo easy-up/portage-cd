@@ -2,6 +2,8 @@ package cli
 
 import (
 	"io"
+	"log/slog"
+	"os"
 	"portage/pkg/pipelines"
 
 	"github.com/spf13/cobra"
@@ -143,8 +145,12 @@ func runDeploy(cmd *cobra.Command, _ []string, force bool) error {
 	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
-	if force {
+	if force && !config.Deploy.Enabled {
+		slog.Debug("explicitly enabling deploy task")
 		config.Deploy.Enabled = true
+	} else if config.Deploy.Enabled {
+		deployEnabledVar := os.Getenv("PORTAGE_DEPLOY_ENABLED")
+		slog.Debug("deploy task is enabled", "env", deployEnabledVar)
 	}
 	return deployPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
 }
