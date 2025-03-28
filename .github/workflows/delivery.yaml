@@ -83,6 +83,12 @@ jobs:
         image_publish_enabled: false
         tag: ${{ steps.vars.outputs.image_name }}
 
+    - name: Store Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: artifacts/
+
     - name: job summary
       shell: bash
       run: |
