@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -86,7 +87,7 @@ func AddBundleFile(dryRunEnabled bool, bundleFilename string, filename string, a
 	}
 
 	// If we're in debug mode (verbose), show all output
-	if slog.Default().Handler().Enabled(nil, slog.LevelDebug) {
+	if slog.Default().Handler().Enabled(context.TODO(), slog.LevelDebug) {
 		opts = append(opts, shell.WithStderr(stderr))
 	} else {
 		opts = append(opts, shell.WithErrorOnly(stderr))

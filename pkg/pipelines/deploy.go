@@ -180,7 +180,7 @@ func (p *Deploy) Run() error {
 		if hook.AuthorizationVar != "" {
 			authValue := os.Getenv(hook.AuthorizationVar)
 			if authValue != "" {
-				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authValue))
+				req.Header.Set("Authorization", authValue)
 				slog.Debug("added authorization header", "envVar", hook.AuthorizationVar)
 			} else {
 				slog.Warn("authorization environment variable is empty", "envVar", hook.AuthorizationVar)
