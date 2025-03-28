@@ -9,6 +9,10 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## [v0.0.5] - 2025-02-14
+
+* Updated gatecheck version to v0.9.1
+
 ## [v0.0.4] - 2025-02-08
 
 * Updated golang dependencies and upgrade to OCAML v1.107.0

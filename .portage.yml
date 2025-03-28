@@ -31,14 +31,16 @@ codeScan:
   gitleaksSrcDir: "."
   semgrepFilename: "semgrep-sast-report.json"      # Filename for the semgrep sast report (e.g. semgrep-sast-report.json)
   semgrepRules: "p/default"                        # Semgrep rules to use (e.g. p/default)
-  semgrepExperimental: false                       # Whether to use experimental semgrep rules (true/false)
+  # This is overridden in the portage Dockerfile, but is set to false here for runs on local systems
+  # where the standard Python semgrep is installed
+  semgrepExperimental: false                       # Whether to use the experimental semgrep CLI (true/false)
   coverageFile: ""                                 # Externally generated code coverage file
   semgrepSrcDir: "."                               # Target directory for semgrep scan (e.g. ./cmd/portage)
 
 # Image Publish Configuration
 imagePublish:
-  enabled: true                                        # Enable/Disable the image publish pipeline (true/false)
-  bundleTag: "ghcr.io/easy-up/portage-cd:latest"        # Image tag for gatecheck bundle image blob (e.g. my-org/my-app:latest)
+  enabled: false                                        # Enable/Disable the image publish pipeline (true/false)
+  bundleTag: "ghcr.io/easy-up/portage-cd/bundle:latest" # Image tag for gatecheck artifact bundle (e.g. my-org/my-app/bundle:latest)
 
 # Deploy Configuration
 deploy:
