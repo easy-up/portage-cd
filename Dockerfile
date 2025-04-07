@@ -109,10 +109,6 @@ WORKDIR /app
 
 ENV PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL="true"
 
-# Create non-root user and group
-RUN addgroup -S portage && adduser -S portage -G portage
-USER portage
-
 ENTRYPOINT ["portage"]
 
 LABEL org.opencontainers.image.title="portage-docker"
@@ -123,7 +119,6 @@ LABEL io.artifacthub.package.license="Apache-2.0"
 
 FROM portage-base AS portage-podman
 
-USER root
 # Update repositories and install packages
 RUN apk add --no-cache --update-cache \
     podman \
@@ -157,8 +152,16 @@ LABEL org.opencontainers.image.title="portage-podman"
 
 FROM portage-base
 
-USER root
 RUN apk update && apk add --no-cache docker-cli-buildx
+
+# Create non-root user and group
+RUN addgroup -S portage && adduser -S portage -G portage
+
+RUN mkdir -p /var/lib/clamav && \
+    chown portage /var/lib/clamav && \
+    chown portage /etc/clamav && \
+    chmod g+w /var/lib/clamav
+
 USER portage
 
 # Configure git to use the mounted .gitignore_global file
