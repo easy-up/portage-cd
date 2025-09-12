@@ -1,42 +1,14 @@
 ARG ALPINE_VERSION=3.20
 
-# Semgrep build is currently broken on alpine > 3.19
-FROM alpine:3.19 AS build-semgrep-core
+# Use pre-built semgrep-core to avoid OCaml dependency conflicts
+FROM semgrep/semgrep:latest AS semgrep-extract
 
-ARG OCAML_VERSION=4.14.0
-
-RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make opam libpsl-dev zstd-static
-
-RUN --mount=type=cache,target=/root/.opam \
-    opam init --compiler=$OCAML_VERSION --disable-sandboxing --no-setup
-
-WORKDIR /src
-
-ARG SEMGREP_VERSION=v1.104.0
-
-RUN git clone --recurse-submodules --branch ${SEMGREP_VERSION} --depth=1 --single-branch https://github.com/semgrep/semgrep
-
-WORKDIR /src/semgrep
-
-# note that we do not run 'make install-deps-for-semgrep-core' here because it
-# configures and builds ocaml-tree-sitter-core too; here we are
-# just concerned about installing external packages to maximize docker caching.
-RUN --mount=type=cache,target=/var/cache/apk make install-deps-ALPINE-for-semgrep-core
-
-RUN --mount=type=cache,target=/var/cache/apk apk add --no-cache zstd libpsl-dev
-
-ARG OPAMSOLVERTIMEOUT=1800
-
-# Note: opam needs access to the apk cache to detect system packages
-RUN --mount=type=cache,target=/var/cache/apk --mount=type=cache,target=/root/.opam make install-deps-for-semgrep-core
-
-ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
-ARG DUNE_PROFILE=release
-
-RUN --mount=type=cache,target=/root/.opam eval "$(opam env)" && \
-    make core
+# Extract only the semgrep-core binary without Python runtime
+FROM alpine:3.20 AS build-semgrep-core
+RUN apk add --no-cache file
+COPY --from=semgrep-extract /usr/bin/semgrep-core /usr/local/bin/semgrep-core
 # Sanity check
-RUN /src/semgrep/_build/install/default/bin/semgrep-core -version
+RUN /usr/local/bin/semgrep-core -version
 
 FROM golang:alpine$ALPINE_VERSION AS build-prerequisites
 
@@ -104,7 +76,7 @@ COPY --from=build-prerequisites /usr/local/bin/syft /usr/local/bin/syft
 COPY --from=build-prerequisites /usr/local/bin/gitleaks /usr/local/bin/gitleaks
 COPY --from=build-prerequisites /usr/local/bin/gatecheck /usr/local/bin/gatecheck
 COPY --from=build-prerequisites /usr/local/bin/oras /usr/local/bin/oras
-COPY --from=build-semgrep-core /src/semgrep/_build/install/default/bin/semgrep-core /usr/local/bin/osemgrep
+COPY --from=build-semgrep-core /usr/local/bin/semgrep-core /usr/local/bin/osemgrep
 
 COPY --from=build /app/bin/portage /usr/local/bin/portage
 
