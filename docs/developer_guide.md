@@ -141,6 +141,76 @@ though it would technically be more efficient than storing in memory.
 The Async Task also wraps the stderr output with a label and timing capability, so the user can see how long each task
 takes to complete.
 
+## Release Process
+
+### Creating a New Release
+
+To create a new release of portage-cd and publish a new container image:
+
+1. **Navigate to the portage-cd repository**
+   ```bash
+   cd portage-cd
+   ```
+
+2. **Ensure you're on the correct branch and up to date**
+   ```bash
+   git status
+   git branch
+   # If on main:
+   git pull origin main
+   # If on belay_main (current active branch):
+   git pull origin belay_main
+   ```
+
+3. **Handle any uncommitted changes**
+   If you have uncommitted changes:
+   - **To include them in the release**: Commit the changes first
+     ```bash
+     git add .
+     git commit -m "Description of changes"
+     ```
+   - **To exclude them**: Stash the changes
+     ```bash
+     git stash push -m "WIP changes before release"
+     ```
+
+4. **Determine the next version number**
+   ```bash
+   git tag --sort=-version:refname | head -5
+   ```
+   Follow semantic versioning. For current `v0.0.6`, the next version would be `v0.0.7`.
+
+5. **Create and push the new tag**
+   ```bash
+   git tag v0.0.7
+   git push origin v0.0.7
+   ```
+
+6. **Verify the release**
+   - The GitHub Actions workflow will automatically trigger
+   - Monitor the release at: `https://github.com/easy-up/portage-cd/actions`
+   - The workflow will:
+     - Build the Go binary using GoReleaser
+     - Build the Docker container (including latest gatecheck changes)
+     - Create a GitHub release with artifacts
+     - Publish the container image
+
+### Release Dependencies
+
+Portage-cd includes gatecheck as a build-time dependency:
+- Gatecheck is cloned from the `belay_main` branch during container build
+- Any changes pushed to gatecheck's `belay_main` branch will be included in the next portage-cd release
+- No separate gatecheck release is required
+
+### Branch Strategy
+
+This repository follows a dual-branch strategy to support different use cases:
+
+- **`main` branch**: For open source users who want to use Portage-CD without the Belay platform integration
+- **`belay_main` branch**: For users integrating with Belay, a SaaS platform that provides additional security pipeline capabilities and deployment automation
+
+The `belay_main` branch includes additional features and configurations specifically designed to work with the Belay platform at https://belay.holomuatech.com. Choose the appropriate branch based on your deployment needs.
+
 ### Documentation
 
 ## Too Long; Might Read (TL;MR)

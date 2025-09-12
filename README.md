@@ -51,6 +51,59 @@ Optionally, if you care to include metadata about the version of `portage` (disp
 go build -ldflags="-X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o ./bin ./cmd/portage
 ```
 
+## Building the Docker Container
+
+### Local Docker Build
+
+For local development and testing, you can build the Docker container using the provided justfile recipe:
+
+```bash
+just docker-build-local
+```
+
+This will:
+- Build a local Docker image tagged with the current git commit hash
+- Include any uncommitted changes (with a warning)
+- Build all dependencies from source including gatecheck, semgrep, grype, syft, gitleaks, and oras
+
+### Manual Docker Build
+
+Alternatively, you can build the Docker image manually:
+
+```bash
+docker build -t portage-local .
+```
+
+### Build Arguments
+
+The Dockerfile supports several build arguments to customize the build:
+
+```bash
+docker build \
+  --build-arg SEMGREP_VERSION=v1.109.0 \
+  --build-arg GATECHECK_VERSION=main \
+  --build-arg GRYPE_VERSION=v0.80.0 \
+  --build-arg SYFT_VERSION=v1.14.0 \
+  --build-arg GITLEAKS_VERSION=v8.21.2 \
+  --build-arg ORAS_VERSION=v1.2.1 \
+  -t portage-custom .
+```
+
+### Troubleshooting Docker Builds
+
+If you encounter build failures:
+
+1. **Semgrep build issues**: Try using a different semgrep version or build without cache:
+   ```bash
+   docker build --no-cache -t portage-local .
+   ```
+
+2. **For dependency conflicts**: Check the specific tool's repository for compatible versions
+
+3. **Local testing**: Use buildx for better cache management:
+   ```bash
+   docker buildx build -t portage-local .
+   ```
 
 ## Getting Details of the Portage Pipeline Tooling
 

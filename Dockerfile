@@ -1,9 +1,9 @@
 ARG ALPINE_VERSION=3.20
 
 # Semgrep build is currently broken on alpine > 3.19
-FROM alpine:$ALPINE_VERSION AS build-semgrep-core
+FROM alpine:3.19 AS build-semgrep-core
 
-ARG OCAML_VERSION=5.2.1
+ARG OCAML_VERSION=4.14.0
 
 RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make opam libpsl-dev zstd-static
 
@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.opam \
 
 WORKDIR /src
 
-ARG SEMGREP_VERSION=v1.107.0
+ARG SEMGREP_VERSION=v1.88.0
 
 RUN git clone --recurse-submodules --branch ${SEMGREP_VERSION} --depth=1 --single-branch https://github.com/semgrep/semgrep
 
@@ -22,6 +22,8 @@ WORKDIR /src/semgrep
 # configures and builds ocaml-tree-sitter-core too; here we are
 # just concerned about installing external packages to maximize docker caching.
 RUN --mount=type=cache,target=/var/cache/apk make install-deps-ALPINE-for-semgrep-core
+
+RUN --mount=type=cache,target=/var/cache/apk apk add --no-cache zstd libpsl-dev
 
 ARG OPAMSOLVERTIMEOUT=1800
 
