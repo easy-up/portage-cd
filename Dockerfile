@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.opam \
 
 WORKDIR /src
 
-ARG SEMGREP_VERSION=v1.88.0
+ARG SEMGREP_VERSION=v1.104.0
 
 RUN git clone --recurse-submodules --branch ${SEMGREP_VERSION} --depth=1 --single-branch https://github.com/semgrep/semgrep
 
