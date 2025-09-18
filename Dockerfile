@@ -134,6 +134,11 @@ FROM portage-base
 
 USER root
 RUN apk update && apk add --no-cache docker-cli-buildx
+# Add clamav permissions for portage user
+RUN mkdir -p /var/lib/clamav && \
+    chown portage /var/lib/clamav && \
+    chown portage /etc/clamav && \
+    chmod g+w /var/lib/clamav
 USER portage
 
 # Configure git to use the mounted .gitignore_global file
