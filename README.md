@@ -187,6 +187,58 @@ accessing the docker daemon remotely with the `DOCKER_HOST` environment variable
 If you don't have access to Artifactory to pull in the Omnibus base image, you can build the image manually which is
 in `images/omnibus/Dockerfile`.
 
+### Pulling and Running the Portage Image
+
+The pre-built images are published to GitHub Container Registry and are built for `linux/amd64` (cloud deployment).
+
+#### Option 1: Run with Platform Emulation (Mac ARM64)
+
+If you're on an ARM64 Mac (Apple Silicon), use the `--platform` flag to run the amd64 image:
+
+```bash
+# Authenticate with GitHub Container Registry (requires access to easy-up org)
+echo $GITHUB_PAT | docker login ghcr.io -u USERNAME --password-stdin
+
+# Pull and run with platform emulation
+docker pull ghcr.io/easy-up/portage:[image-tag]
+docker run --platform linux/amd64 --user root -it --rm \
+  --entrypoint sh \
+  -v "$(pwd):/app:rw" \
+  -v "/var/run/docker.sock:/var/run/docker.sock" \
+  -e "GIT_CONFIG_GLOBAL=/tmp/.gitconfig" \
+  ghcr.io/easy-up/portage:[image-tag] \
+  -c "git config --global --add safe.directory /app && portage run all"
+```
+
+#### Option 2: Build Locally
+
+Build the image locally for your native architecture (requires [just](https://github.com/casey/just?tab=readme-ov-file#installation)):
+
+```bash
+# From the portage-cd repo directory
+just docker-build-local
+
+# This will output the image tag, e.g., ghcr.io/easy-up/portage:local-273d424
+# Run the locally built image from your project directory
+docker run --user root -it --rm \
+  --entrypoint sh \
+  -v "$(pwd):/app:rw" \
+  -v "/var/run/docker.sock:/var/run/docker.sock" \
+  ghcr.io/easy-up/portage:local-273d424 \
+  -c "git config --global --add safe.directory /app && portage run all"
+```
+
+Note: Replace `local-273d424` with the actual tag shown when you built the image.
+
+#### Option 3: Build the Go Binary Directly
+
+Build and run the Go binary directly (requires Go and [just](https://github.com/casey/just?tab=readme-ov-file#installation)):
+
+```bash
+just build
+./bin/portage run all
+```
+
 ### Using `/var/run/docker.sock`
 
 This approach assumes you have the docker daemon running on your host machine.
@@ -200,7 +252,7 @@ docker run -it --rm \
   `# Mount docker.sock for use by the docker CLI running inside the container` \
   -v "/var/run/docker.sock:/var/run/docker.sock" \
   `# Run the portage container with the desired arguments` \
-  portage run image-build
+  portage run all
 ```
 
 ### Using a Remote Daemon
