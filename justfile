@@ -11,7 +11,7 @@ docker-build-local:
     if ! git diff-index --quiet HEAD; then \
       echo "WARNING: uncommitted changes incorporated into local docker image" >&2; \
     fi
-    docker build . --build-arg VERSION=local-$(git show --no-patch HEAD --format='%h') --build-arg GIT_COMMIT=$(git rev-parse HEAD) --build-arg GIT_DESCRIPTION="$(git show --no-patch HEAD --format='%s')" -t "{{IMAGE_NAME}}:local-$(git show --no-patch HEAD --format='%h')"
+    docker build . --no-cache --build-arg VERSION=local-$(git show --no-patch HEAD --format='%h') --build-arg GIT_COMMIT=$(git rev-parse HEAD) --build-arg GIT_DESCRIPTION="$(git show --no-patch HEAD --format='%s')" -t "{{IMAGE_NAME}}:local-$(git show --no-patch HEAD --format='%h')"
 
 # build and install binary
 install: build
