@@ -181,7 +181,11 @@ func (p *Deploy) Run() error {
 			authValue := os.Getenv(hook.AuthorizationVar)
 			if authValue != "" {
 				req.Header.Set("Authorization", authValue)
-				slog.Debug("added authorization header", "envVar", hook.AuthorizationVar)
+				last4 := authValue
+				if len(authValue) > 4 {
+					last4 = authValue[len(authValue)-4:]
+				}
+				slog.Debug("added authorization header", "envVar", hook.AuthorizationVar, "auth_last4", last4, "auth_length", len(authValue))
 			} else {
 				slog.Warn("authorization environment variable is empty", "envVar", hook.AuthorizationVar)
 			}
