@@ -75,7 +75,14 @@ jobs:
         tags: ${{ steps.vars.outputs.podman_image_name }}
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
         target: portage-podman
-    
+
+    - name: Run Portage CD Scans
+      uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@main
+      with:
+        image_build_enabled: false
+        image_publish_enabled: false
+        tag: ${{ steps.vars.outputs.image_name }}
+
     - name: Trigger portage-action rebuild (github-script)
       if: github.ref == 'refs/heads/belay_main'
       uses: actions/github-script@v7
@@ -88,13 +95,6 @@ jobs:
             event_type: 'portage-updated',
             client_payload: { ref: 'belay_main' }
           })
-
-    - name: Run Portage CD Scans
-      uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@main
-      with:
-        image_build_enabled: false
-        image_publish_enabled: false
-        tag: ${{ steps.vars.outputs.image_name }}
 
     - name: job summary
       shell: bash
