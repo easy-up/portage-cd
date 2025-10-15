@@ -69,7 +69,7 @@ RUN mkdir -p ../bin && \
 
 FROM alpine:$ALPINE_VERSION AS portage-base
 
-RUN apk --no-cache add git ca-certificates tzdata clamav
+RUN apk --no-cache add git ca-certificates tzdata clamav gettext
 
 COPY --from=build-prerequisites /usr/local/bin/grype /usr/local/bin/grype
 COPY --from=build-prerequisites /usr/local/bin/syft /usr/local/bin/syft
