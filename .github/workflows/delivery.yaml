@@ -95,6 +95,7 @@ jobs:
             event_type: 'portage-updated',
             client_payload: { ref: 'belay_main' }
           })
+          core.info(`repository_dispatch status: ${res.status}`); // should be 204
 
     - name: job summary
       shell: bash
