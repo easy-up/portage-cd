@@ -89,7 +89,7 @@ jobs:
       with:
         github-token: ${{ secrets.PORTAGE_ACTIONS_DISPATCH_TOKEN }}
         script: |
-          await github.request('POST /repos/{owner}/{repo}/dispatches', {
+          const res = await github.request('POST /repos/{owner}/{repo}/dispatches', {
             owner: 'easy-up',
             repo: 'portage-cd-actions',
             event_type: 'portage-updated',
