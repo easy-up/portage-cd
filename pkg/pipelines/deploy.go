@@ -177,17 +177,32 @@ func (p *Deploy) Run() error {
 		// Set the Content-Type header to the multipart writer's content type
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		if hook.AuthorizationVar != "" {
-			authValue := os.Getenv(hook.AuthorizationVar)
-			if authValue != "" {
-				req.Header.Set("Authorization", authValue)
-				last4 := authValue
-				if len(authValue) > 4 {
-					last4 = authValue[len(authValue)-4:]
-				}
-				slog.Debug("added authorization header", "envVar", hook.AuthorizationVar, "auth_last4", last4, "auth_length", len(authValue))
-			} else {
+		// Priority order for auth token:
+		// 1. PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN environment variable (via config.WebhookAuthToken)
+		// 2. Environment variable specified in authorizationVar field in config file
+		var authValue string
+		var authSource string
+
+		if p.config.Deploy.WebhookAuthToken != "" {
+			authValue = p.config.Deploy.WebhookAuthToken
+			authSource = "PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN"
+		} else if hook.AuthorizationVar != "" {
+			authValue = os.Getenv(hook.AuthorizationVar)
+			authSource = hook.AuthorizationVar
+		}
+
+		if authValue != "" {
+			req.Header.Set("Authorization", authValue)
+			last4 := authValue
+			if len(authValue) > 4 {
+				last4 = authValue[len(authValue)-4:]
+			}
+			slog.Debug("added authorization header", "source", authSource, "auth_last4", last4, "auth_length", len(authValue))
+		} else {
+			if hook.AuthorizationVar != "" {
 				slog.Warn("authorization environment variable is empty", "envVar", hook.AuthorizationVar)
+			} else {
+				slog.Warn("no authorization configured for webhook", "webhook", hook.Url)
 			}
 		}
 
