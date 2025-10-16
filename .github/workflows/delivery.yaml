@@ -50,6 +50,10 @@ jobs:
         # If on a git tag like vx.x.x, change the image tag to reflect
         if [[ $GITHUB_REF == refs/tags/v* ]]; then
           image_tag=${GITHUB_REF/refs\/tags\//}
+        elif [[ $GITHUB_REF == refs/heads/belay_main ]]; then
+          # Maintain a stable alias that always points to the latest belay_main build
+          echo "branch_latest_tag=$image_repo:belay-main-latest" >> $GITHUB_OUTPUT
+          echo "podman_branch_latest_tag=$image_repo:podman-belay-main-latest" >> $GITHUB_OUTPUT
         fi
         # Image Names
         echo "image_name=$image_repo:$image_tag" >> $GITHUB_OUTPUT
@@ -63,7 +67,9 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         push: true
-        tags: ${{ steps.vars.outputs.image_name }}
+        tags: |
+          ${{ steps.vars.outputs.image_name }}
+          ${{ steps.vars.outputs.branch_latest_tag }}
         cache-from: "type=local,src=${{ runner.temp }}/.docker-cache"
         cache-to: "type=local,dest=${{ runner.temp }}/.docker-cache,mode=max"
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
@@ -72,7 +78,9 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         push: true
-        tags: ${{ steps.vars.outputs.podman_image_name }}
+        tags: |
+          ${{ steps.vars.outputs.podman_image_name }}
+          ${{ steps.vars.outputs.podman_branch_latest_tag }}
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
         target: portage-podman
 
@@ -103,3 +111,9 @@ jobs:
         echo "## Docker Action Image Build and Push Summary" >> $GITHUB_STEP_SUMMARY
         echo ":white_check_mark: Image (Docker CLI): ${{ steps.vars.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
         echo ":white_check_mark: Image (Podman CLI): ${{ steps.vars.outputs.podman_image_name }}" >> $GITHUB_STEP_SUMMARY
+        if [[ -n "${{ steps.vars.outputs.branch_latest_tag }}" ]]; then
+          echo ":label: Stable alias (Docker CLI): ${{ steps.vars.outputs.branch_latest_tag }}" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [[ -n "${{ steps.vars.outputs.podman_branch_latest_tag }}" ]]; then
+          echo ":label: Stable alias (Podman CLI): ${{ steps.vars.outputs.podman_branch_latest_tag }}" >> $GITHUB_STEP_SUMMARY
+        fi
