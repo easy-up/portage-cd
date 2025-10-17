@@ -134,7 +134,10 @@ func (p *Deploy) Run() error {
 	}
 
 	for i, hook := range p.config.Deploy.SuccessWebhooks {
-		slog.Debug("submitting deployment success webhook", "webhook", hook, "index", i)
+		slog.Info("preparing to submit deployment success webhook",
+			"webhook_url", hook.Url,
+			"authorization_var_name", hook.AuthorizationVar,
+			"index", i)
 
 		// Send a POST request with the bundle file in a multipart form
 		bundleFile, err := os.Open(p.runtime.bundleFilename)
@@ -183,12 +186,27 @@ func (p *Deploy) Run() error {
 		var authValue string
 		var authSource string
 
+		slog.Info("checking authorization configuration",
+			"webhook_auth_token_from_viper", p.config.Deploy.WebhookAuthToken != "",
+			"authorization_var_from_config", hook.AuthorizationVar)
+
 		if p.config.Deploy.WebhookAuthToken != "" {
 			authValue = p.config.Deploy.WebhookAuthToken
-			authSource = "PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN"
+			authSource = "PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN (via Viper)"
+			slog.Info("using auth token from PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN", "length", len(authValue))
 		} else if hook.AuthorizationVar != "" {
 			authValue = os.Getenv(hook.AuthorizationVar)
-			authSource = hook.AuthorizationVar
+			authSource = fmt.Sprintf("%s (direct os.Getenv)", hook.AuthorizationVar)
+
+			if authValue != "" {
+				slog.Info("successfully retrieved auth token from environment variable",
+					"env_var_name", hook.AuthorizationVar,
+					"token_length", len(authValue))
+			} else {
+				slog.Error("environment variable specified but not set or empty",
+					"env_var_name", hook.AuthorizationVar,
+					"note", "This env var must be set in your GitLab CI environment")
+			}
 		}
 
 		if authValue != "" {
@@ -197,12 +215,14 @@ func (p *Deploy) Run() error {
 			if len(authValue) > 4 {
 				last4 = authValue[len(authValue)-4:]
 			}
-			slog.Debug("added authorization header", "source", authSource, "auth_last4", last4, "auth_length", len(authValue))
+			slog.Info("authorization header added to request", "source", authSource, "auth_last4", last4, "auth_length", len(authValue))
 		} else {
+			// Only fail if authorization was explicitly configured but not provided
+			// If no authorizationVar is specified, just warn (webhook might not require auth)
 			if hook.AuthorizationVar != "" {
-				slog.Warn("authorization environment variable is empty", "envVar", hook.AuthorizationVar)
+				return mkDeploymentError(fmt.Errorf("authorization required but environment variable '%s' is not set. Please set this variable in your GitLab CI environment", hook.AuthorizationVar))
 			} else {
-				slog.Warn("no authorization configured for webhook", "webhook", hook.Url)
+				slog.Warn("no authorization configured for webhook - proceeding without auth header", "webhook", hook.Url)
 			}
 		}
 
