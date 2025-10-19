@@ -250,9 +250,14 @@ func (p *CodeScan) gatecheckBundleJob(task *AsyncTask, semgrep *AsyncTask, gitle
 	task.ExitError = errors.Join(task.ExitError, err)
 
 	if p.runtime.coverageFile != "" {
-		coverageOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.coverageFile), shell.WithBundleTags("type:coverage")})
-		err = shell.GatecheckBundleAdd(coverageOpts...)
-		task.ExitError = errors.Join(task.ExitError, err)
+		// Check if the coverage file actually exists before trying to add it
+		if _, statErr := os.Stat(p.runtime.coverageFile); statErr == nil {
+			coverageOpts := slices.Concat(opts, []shell.OptionFunc{shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.coverageFile), shell.WithBundleTags("type:coverage")})
+			err = shell.GatecheckBundleAdd(coverageOpts...)
+			task.ExitError = errors.Join(task.ExitError, err)
+		} else {
+			slog.Warn("coverage file specified but does not exist, skipping", "coverage_file", p.runtime.coverageFile, "error", statErr)
+		}
 	}
 }
 

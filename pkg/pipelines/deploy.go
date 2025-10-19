@@ -71,6 +71,12 @@ func (p *Deploy) Run() error {
 		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
 
+	// Ensure artifacts directory exists before attempting to create files in it
+	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
+		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
+		return mkDeploymentError(err)
+	}
+
 	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
 	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
