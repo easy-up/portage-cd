@@ -2,6 +2,7 @@ package cli
 
 import (
 	"log/slog"
+	"os"
 	"portage/pkg/pipelines"
 
 	"github.com/spf13/cobra"
@@ -56,6 +57,16 @@ func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
 		"build_date", AppMetadata.BuildDate,
 		"git_description", AppMetadata.GitDescription,
 		"platform", AppMetadata.Platform)
+
+	// Log container image information if available (helps identify which image is running in CI)
+	// This is useful for correlating runs with specific image builds
+	if ciImage := os.Getenv("CI_REGISTRY_IMAGE"); ciImage != "" {
+		imageTag := os.Getenv("CI_COMMIT_REF_SLUG")
+		slog.Debug("gitlab ci image", "registry_image", ciImage, "ref_slug", imageTag)
+	}
+	if hostname := os.Getenv("HOSTNAME"); hostname != "" {
+		slog.Debug("container runtime info", "hostname", hostname)
+	}
 
 	// Handle config file
 	if configFile := viper.GetString("config"); configFile != "" {

@@ -72,7 +72,7 @@ type configImagePublish struct {
 type configDeploy struct {
 	Enabled                 bool            `mapstructure:"enabled"`
 	GatecheckConfigFilename string          `mapstructure:"gatecheckConfigFilename"`
-	WebhookAuthToken        string          `mapstructure:"webhookAuthToken"`
+	WebhookAuthHeader       string          `mapstructure:"webhookAuthHeader"`
 	SuccessWebhooks         []webhookConfig `mapstructure:"successWebhooks"`
 }
 
@@ -333,12 +333,12 @@ var metaConfig = []metaConfigField{
 		Description:     "The filename for the gatecheck config",
 	},
 	{
-		Key:             "deploy.webhookauthtoken",
-		Env:             "PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN",
-		ActionInputName: "webhook_auth_token",
+		Key:             "deploy.webhookauthheader",
+		Env:             "PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER",
+		ActionInputName: "webhook_auth_header",
 		ActionType:      "String",
 		Default:         nil,
-		Description:     "Authorization token for deployment webhook (overrides authorizationVar in config)",
+		Description:     "Authorization header value for deployment webhook (overrides authorizationVar in config)",
 	},
 }
 

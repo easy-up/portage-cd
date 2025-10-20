@@ -186,20 +186,20 @@ func (p *Deploy) Run() error {
 		// Set the Content-Type header to the multipart writer's content type
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		// Priority order for auth token:
-		// 1. PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN environment variable (via config.WebhookAuthToken)
+		// Priority order for auth header:
+		// 1. PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER environment variable (via config.WebhookAuthHeader)
 		// 2. Environment variable specified in authorizationVar field in config file
 		var authValue string
 		var authSource string
 
 		slog.Info("checking authorization configuration",
-			"webhook_auth_token_from_viper", p.config.Deploy.WebhookAuthToken != "",
+			"webhook_auth_header_from_viper", p.config.Deploy.WebhookAuthHeader != "",
 			"authorization_var_from_config", hook.AuthorizationVar)
 
-		if p.config.Deploy.WebhookAuthToken != "" {
-			authValue = p.config.Deploy.WebhookAuthToken
-			authSource = "PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN (via Viper)"
-			slog.Info("using auth token from PORTAGE_DEPLOY_WEBHOOK_AUTH_TOKEN", "length", len(authValue))
+		if p.config.Deploy.WebhookAuthHeader != "" {
+			authValue = p.config.Deploy.WebhookAuthHeader
+			authSource = "PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER (via Viper)"
+			slog.Info("using auth header from PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER", "length", len(authValue))
 		} else if hook.AuthorizationVar != "" {
 			authValue = os.Getenv(hook.AuthorizationVar)
 			authSource = fmt.Sprintf("%s (direct os.Getenv)", hook.AuthorizationVar)

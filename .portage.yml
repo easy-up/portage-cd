@@ -48,4 +48,4 @@ deploy:
   gatecheckConfigFilename: ".custom-gatecheck.yml" # Filename for gatecheck config which specifies the validation rules and limits applied during the deployment process
   successWebhooks:
     - url: "https://belay-api.dev.holomuatech.online/Build/SubmitArtifacts" # Using the same endpoint from .custom-gatecheck.yml for consistency
-      authorizationVar: "DEPLOY_WEBHOOK_AUTH_TOKEN"                         # Environment variable containing the auth token
+      authorizationVar: "DEPLOY_WEBHOOK_AUTH_HEADER"                        # Environment variable containing the auth header
