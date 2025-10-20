@@ -49,6 +49,14 @@ func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
 	silentFlag, _ := cmd.Flags().GetBool("silent")
 
+	// Log version information at startup
+	slog.Info("portage version",
+		"cli_version", AppMetadata.CLIVersion,
+		"git_commit", AppMetadata.GitCommit,
+		"build_date", AppMetadata.BuildDate,
+		"git_description", AppMetadata.GitDescription,
+		"platform", AppMetadata.Platform)
+
 	// Handle config file
 	if configFile := viper.GetString("config"); configFile != "" {
 		viper.SetConfigFile(configFile)
