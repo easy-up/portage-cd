@@ -19,9 +19,4 @@ semgrep:
         error:
             enabled: true
             limit: 5
-version: "1"
-api:
-  enabled: true
-  endpoint: "http://localhost:5168/Build/SubmitArtifacts"
-  skipVerify: true
-  authorizationVar: "DEPLOY_WEBHOOK_AUTH_HEADER"
+
