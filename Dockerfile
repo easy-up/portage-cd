@@ -7,7 +7,7 @@ ARG OCAML_VERSION=5.3.0
 RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make rsync opam
 
 RUN --mount=type=cache,target=/root/.opam \
-    opam init --compiler=$OCAML_VERSION --disable-sandboxing ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
+    opam init --disable-sandboxing -v && opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda -y -v
 
 WORKDIR /src
 
