@@ -1,48 +1,48 @@
-ARG ALPINE_VERSION=3.20
+ARG ALPINE_VERSION=3.23
 
-# Semgrep build is currently broken on alpine > 3.19
 FROM alpine:$ALPINE_VERSION AS build-semgrep-core
 
-ARG OCAML_VERSION=5.2.1
+ARG OCAML_VERSION=5.3.0
 
-RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make opam libpsl-dev zstd-static
+RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make rsync opam
 
 RUN --mount=type=cache,target=/root/.opam \
-    opam init --compiler=$OCAML_VERSION --disable-sandboxing --no-setup
+    opam init --compiler=$OCAML_VERSION --disable-sandboxing ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
 
 WORKDIR /src
 
-ARG SEMGREP_VERSION=v1.107.0
+# v1.156.0
+# Using a commit hash because tags are less stable than commits
+ARG SEMGREP_VERSION_COMMIT=ab584982f6ecdaaa7954a14e5350a70c060e097f
 
-RUN git clone --recurse-submodules --branch ${SEMGREP_VERSION} --depth=1 --single-branch https://github.com/semgrep/semgrep
+RUN git clone --recurse-submodules --revision ${SEMGREP_VERSION_COMMIT} --depth=1 https://github.com/semgrep/semgrep
 
 WORKDIR /src/semgrep
 
-# note that we do not run 'make install-deps-for-semgrep-core' here because it
-# configures and builds ocaml-tree-sitter-core too; here we are
-# just concerned about installing external packages to maximize docker caching.
-RUN --mount=type=cache,target=/var/cache/apk make install-deps-ALPINE-for-semgrep-core
+# Install our fork of the compiler
+RUN --mount=type=cache,target=/root/.opam make pin-ocaml-fork
 
 ARG OPAMSOLVERTIMEOUT=1800
+RUN --mount=type=cache,target=/root/.opam make install-deps
 
-# Note: opam needs access to the apk cache to detect system packages
-RUN --mount=type=cache,target=/var/cache/apk --mount=type=cache,target=/root/.opam make install-deps-for-semgrep-core
+# Compile (and minimal test) semgrep-core
+RUN --mount=type=cache,target=/root/.opam opam exec -- make core
 
-ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
-ARG DUNE_PROFILE=release
-
-RUN --mount=type=cache,target=/root/.opam eval "$(opam env)" && \
-    make core
 # Sanity check
-RUN /src/semgrep/_build/install/default/bin/semgrep-core -version
+RUN ./bin/semgrep-core -version
 
 FROM golang:alpine$ALPINE_VERSION AS build-prerequisites
 
-ARG GRYPE_VERSION=v0.78.0
-ARG SYFT_VERSION=v1.5.0
-ARG GITLEAKS_VERSION=v8.18.3
-ARG GATECHECK_VERSION=v0.9.2
-ARG ORAS_VERSION=v1.2.0
+ARG GRYPE_VERSION=v0.110.0
+ARG GRYPE_VERSION_COMMIT=dee8de483dfba5b4e0bc0aa8e4ab2ce52137e490
+ARG SYFT_VERSION=v1.42.3
+ARG SYFT_VERSION_COMMIT=860126c650c2d05b63b83a3895e41268162315a3
+ARG GITLEAKS_VERSION=v8.30.1
+ARG GITLEAKS_VERSION_COMMIT=83d9cd684c87d95d656c1458ef04895a7f1cbd8e
+ARG GATECHECK_VERSION=v0.9.3
+ARG GATECHECK_VERSION_COMMIT=5c517561d37a5281ff10a3b7a82908465bb6d7f3
+ARG ORAS_VERSION=v1.3.1
+ARG ORAS_VERSION_COMMIT=e3f584fabe332396414a44b7a83d029cfa5fc201
 
 RUN apk --no-cache add ca-certificates git make
 
@@ -55,18 +55,23 @@ RUN git clone --branch ${GATECHECK_VERSION} --depth=1 --single-branch https://gi
 RUN git clone --branch ${ORAS_VERSION} --depth=1 --single-branch https://github.com/oras-project/oras /app/oras
 
 RUN cd /app/grype && \
+    git checkout ${GRYPE_VERSION_COMMIT} && \
     go build -ldflags="-w -s -extldflags '-static' -X 'main.version=${GRYPE_VERSION}' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/grype
 
 RUN cd /app/syft && \
+    git checkout ${SYFT_VERSION_COMMIT} && \
     go build -ldflags="-w -s -extldflags '-static' -X 'main.version=${SYFT_VERSION}' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/syft
 
 RUN cd /app/gitleaks && \
+    git checkout ${GITLEAKS_VERSION_COMMIT} && \
     go build -ldflags="-s -w -X=github.com/zricethezav/gitleaks/v8/cmd.Version=${GITLEAKS_VERSION}" -o /usr/local/bin .
 
 RUN cd /app/gatecheck && \
+    git checkout ${GATECHECK_VERSION_COMMIT} && \
     go build -ldflags="-s -w -X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/gatecheck
 
 RUN cd /app/oras && \
+    git checkout ${ORAS_VERSION_COMMIT} && \
     make build-linux-amd64 && \
     mv bin/linux/amd64/oras /usr/local/bin/oras
 
@@ -152,7 +157,7 @@ LABEL org.opencontainers.image.title="portage-podman"
 
 FROM portage-base
 
-RUN apk update && apk add --no-cache docker-cli-buildx
+RUN apk update && apk add --no-cache docker-cli docker-cli-buildx
 
 # Create non-root user and group
 RUN addgroup -S portage && adduser -S portage -G portage

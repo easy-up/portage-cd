@@ -131,9 +131,6 @@ In order for the docker CLI in the portage to connect to the docker daemon runni
 you must either mount the `/var/run/docker.sock` in the `portage` container, or provide configuration for
 accessing the docker daemon remotely with the `DOCKER_HOST` environment variable.
 
-If you don't have access to Artifactory to pull in the Omnibus base image, you can build the image manually which is
-in `images/omnibus/Dockerfile`.
-
 ### Using `/var/run/docker.sock`
 
 This approach assumes you have the docker daemon running on your host machine.
