@@ -61,8 +61,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
       with:
-        platforms: linux/amd64
-        # platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.vars.outputs.image_name }}
         cache-from: "type=local,src=${{ runner.temp }}/.docker-cache"
@@ -72,8 +71,7 @@ jobs:
     - name: Build and push podman target
       uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
       with:
-        platforms: linux/amd64
-        # platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.vars.outputs.podman_image_name }}
         build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
