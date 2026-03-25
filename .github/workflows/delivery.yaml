@@ -1,5 +1,5 @@
 name: Portage Image Build
-run-name: "Build, Scan, and Push Portage"
+run-name: "Build, Scan, and Push Portage: ${{ github.event.head_commit.message }}"
 permissions:
   contents: read
   checks: write
@@ -15,7 +15,7 @@ on:
     branches:
       - main
 jobs:
-  image_delivery:
+  image_build:
     strategy:
       matrix:
         include:
@@ -50,7 +50,7 @@ jobs:
 
       - uses: actions/checkout@v6
 
-      - name: Set outputs
+      - name: Set variables
         id: vars
         run: |
           image_repo=ghcr.io/easy-up/portage
@@ -107,3 +107,49 @@ jobs:
           echo "## Docker Action Image Build and Push Summary" >> $GITHUB_STEP_SUMMARY
           echo ":white_check_mark: Image (Docker CLI): ${{ steps.vars.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
           echo ":white_check_mark: Image (Podman CLI): ${{ steps.vars.outputs.podman_image_name }}" >> $GITHUB_STEP_SUMMARY
+
+  push_manifest:
+    needs: image_build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set variables
+        id: vars
+        run: |
+          IMAGE_REPO=ghcr.io/easy-up/portage
+          IMAGE_TAG=${GITHUB_SHA::8}
+          # If on a git tag like vx.x.x, change the image tag to reflect
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            IMAGE_TAG=${GITHUB_REF/refs\/tags\//}
+          fi
+          # Image Names
+          # Note: the images produced by the build are acutally manifest lists, so in order to
+          #       combine them into a single multi-platform manifest we need to reference the
+          #       individual components by digest.
+          AMD64_IMAGE_NAME="$IMAGE_REPO:amd64-$IMAGE_TAG"
+          ARM64_IMAGE_NAME="$IMAGE_REPO:arm64-$IMAGE_TAG"
+          echo "amd64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $AMD64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "arm64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $ARM64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "image_name=$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          PODMAN_AMD64_IMAGE_NAME="$IMAGE_REPO:podman-amd64-$IMAGE_TAG"
+          PODMAN_ARM64_IMAGE_NAME="$IMAGE_REPO:podman-arm64-$IMAGE_TAG"
+          echo "podman_amd64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $PODMAN_AMD64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "podman_arm64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $PODMAN_ARM64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "podman_image_name=$IMAGE_REPO:podman-$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create and push manifest
+        run: |
+          docker manifest create "${{ steps.vars.outputs.image_name }}" \
+            --amend "${{ steps.vars.outputs.amd64_image_name }}" \
+            --amend "${{ steps.vars.outputs.arm64_image_name }}"
+          docker manifest push "${{ steps.vars.outputs.image_name }}"
+          docker manifest create "${{ steps.vars.outputs.podman_image_name }}" \
+            --amend "${{ steps.vars.outputs.podman_amd64_image_name }}" \
+            --amend "${{ steps.vars.outputs.podman_arm64_image_name }}"
+          docker manifest push "${{ steps.vars.outputs.podman_image_name }}"
+  
