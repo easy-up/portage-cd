@@ -50,6 +50,7 @@ type configImageScan struct {
 	SyftFilename        string `mapstructure:"syftFilename"`
 	GrypeConfigFilename string `mapstructure:"grypeConfigFilename"`
 	GrypeFilename       string `mapstructure:"grypeFilename"`
+	ClamavEnabled       bool   `mapstructure:"clamavEnabled"`
 	ClamavFilename      string `mapstructure:"clamavFilename"`
 }
 
