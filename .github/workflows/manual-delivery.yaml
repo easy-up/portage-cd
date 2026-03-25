@@ -1,13 +1,22 @@
-name: manual-image-build
-run-name: "Docker Action Image Build and Push: ${{ github.event.head_commit.message }}"
+name: Manually Triggered Portage Image Build (no scan)
+run-name: "Build and Push Portage: ${{ github.event.head_commit.message }}"
 permissions:
   contents: read
   packages: write
 on:
   workflow_dispatch:
 jobs:
-  build-image:
-    runs-on: ubuntu-latest
+  image_delivery:
+    strategy:
+      matrix:
+        include:
+          - arch: 'amd64'
+            runs-on: ubuntu-latest
+          - arch: 'arm64'
+            runs-on: ubuntu-24.04-arm
+
+    name: Build and Push Image for ${{ matrix.arch }}
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
@@ -28,37 +37,41 @@ jobs:
       - name: Set outputs
         id: vars
         run: |
-          echo "tag_name=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT 
+          image_repo=ghcr.io/easy-up/portage
+          image_arch=${{ matrix.arch }}
+          image_tag=${GITHUB_SHA::8}
+          # If on a git tag like vx.x.x, change the image tag to reflect
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            echo "tag_name=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+            image_tag=${GITHUB_REF/refs\/tags\//}
           fi
-          echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
-          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
-          echo "GIT_DESCRIPTION=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_ENV
+          # Image Names
+          echo "image_name=$image_repo:$image_arch-$image_tag" >> $GITHUB_OUTPUT
+          echo "podman_image_name=$image_repo:podman-$image_arch-$image_tag" >> $GITHUB_OUTPUT
+          # Build Variables
+          echo "version=$(git describe --tags)" >> $GITHUB_OUTPUT
+          echo "git_commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "git_description=$(git log -1 --pretty=%B | head -n 1 | tr \' _)" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch }}
           push: true
-          tags: ghcr.io/easy-up/portage:${{ steps.vars.outputs.tag_name }}
-          build-args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
+          tags: ${{ steps.vars.outputs.image_name }}
+          build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
 
       - name: Build and push podman target
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch }}
           push: true
-          tags: ghcr.io/easy-up/portage:podman-${{ steps.vars.outputs.tag_name }}
-          build-args: "VERSION=${{ env.VERSION }},GIT_COMMIT=${{ env.GIT_COMMIT }},GIT_DESCRIPTION=${{ env.GIT_DESCRIPTION }}"
+          tags: ${{ steps.vars.outputs.podman_image_name }}
+          build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
           target: portage-podman
 
       - name: job summary
         shell: bash
         run: |
           echo "## Docker Action Image Build and Push Summary" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Docker Action Image Build and Push" >> $GITHUB_STEP_SUMMARY
-          # echo ":white_check_mark: Image (Docker CLI): ghcr.io/easy-up/portage:${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
-          # echo ":white_check_mark: Image (Podman CLI): ghcr.io/easy-up/portage:podman-${{ steps.vars.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Docker CLI): ghcr.io/easy-up/portage:${GITHUB_SHA::8}" >> $GITHUB_STEP_SUMMARY
-          echo ":white_check_mark: Image (Podman CLI): ghcr.io/easy-up/portage:podman-${GITHUB_SHA::8}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Docker CLI): ${{ steps.vars.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ":white_check_mark: Image (Podman CLI): ${{ steps.vars.outputs.podman_image_name }}" >> $GITHUB_STEP_SUMMARY
