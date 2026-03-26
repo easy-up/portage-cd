@@ -5,9 +5,6 @@ permissions:
   packages: write
 on:
   workflow_dispatch:
-  push:
-    # Temporary hack to get a working multi-arch image published
-    branches: ['multiplatform']
 jobs:
   image_build:
     strategy:

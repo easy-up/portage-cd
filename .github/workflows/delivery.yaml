@@ -11,9 +11,18 @@ on:
       - '*main'
       - 'debug-*'
     tags: [ '*' ]
+    paths: &build_paths
+      - .github/workflows/delivery.yml
+      - /Dockerfile
+      - /go.*
+      - /cmd/**
+      - /docker/**
+      - /pkg/**
+      - /portage.yml
+      - /.*gatecheck.yml
   pull_request:
-    branches:
-      - main
+    paths: *build_paths
+
 jobs:
   image_build:
     strategy:
