@@ -1,13 +1,16 @@
 ARG ALPINE_VERSION=3.23
 
+ARG TARGETPLATFORM
+
 FROM alpine:$ALPINE_VERSION AS build-semgrep-core
 
+ARG TARGETPLATFORM
 ARG OCAML_VERSION=5.3.0
 
-RUN --mount=type=cache,target=/var/cache/apk apk add bash build-base git make rsync opam
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add bash build-base git make rsync opam
 
-RUN --mount=type=cache,target=/root/.opam \
-    opam init --compiler=$OCAML_VERSION --disable-sandboxing ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam \
+    opam init --disable-sandboxing -v && opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda -y -v
 
 WORKDIR /src
 
@@ -19,20 +22,21 @@ RUN git clone --recurse-submodules --revision ${SEMGREP_VERSION_COMMIT} --depth=
 
 WORKDIR /src/semgrep
 
-# Install our fork of the compiler
-RUN --mount=type=cache,target=/root/.opam make pin-ocaml-fork
+# Install semgrep fork of the compiler
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam make pin-ocaml-fork
 
 ARG OPAMSOLVERTIMEOUT=1800
-RUN --mount=type=cache,target=/root/.opam make install-deps
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam make install-deps
 
 # Compile (and minimal test) semgrep-core
-RUN --mount=type=cache,target=/root/.opam opam exec -- make core
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam opam exec -- make core
 
 # Sanity check
 RUN ./bin/semgrep-core -version
 
 FROM golang:alpine$ALPINE_VERSION AS build-prerequisites
 
+ARG TARGETPLATFORM
 ARG GRYPE_VERSION=v0.110.0
 ARG GRYPE_VERSION_COMMIT=dee8de483dfba5b4e0bc0aa8e4ab2ce52137e490
 ARG SYFT_VERSION=v1.42.3
@@ -77,12 +81,13 @@ RUN cd /app/oras && \
 
 FROM golang:alpine$ALPINE_VERSION AS build
 
+ARG TARGETPLATFORM
 ARG VERSION
 ARG GIT_COMMIT
 ARG GIT_DESCRIPTION
 
 # install build dependencies
-RUN apk add --no-cache git
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add git
 
 WORKDIR /app/src
 
@@ -99,7 +104,8 @@ RUN mkdir -p ../bin && \
 
 FROM alpine:$ALPINE_VERSION AS portage-base
 
-RUN apk --no-cache add git ca-certificates tzdata clamav
+ARG TARGETPLATFORM
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add git ca-certificates tzdata clamav
 
 COPY --from=build-prerequisites /usr/local/bin/grype /usr/local/bin/grype
 COPY --from=build-prerequisites /usr/local/bin/syft /usr/local/bin/syft
@@ -124,10 +130,9 @@ LABEL io.artifacthub.package.license="Apache-2.0"
 
 FROM portage-base AS portage-podman
 
+ARG TARGETPLATFORM
 # Update repositories and install packages
-RUN apk add --no-cache --update-cache \
-    podman \
-    fuse-overlayfs
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add podman fuse-overlayfs
 
 COPY docker/storage.conf /etc/containers/
 COPY docker/containers.conf /etc/containers/
@@ -157,7 +162,8 @@ LABEL org.opencontainers.image.title="portage-podman"
 
 FROM portage-base
 
-RUN apk update && apk add --no-cache docker-cli docker-cli-buildx
+ARG TARGETPLATFORM
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add docker-cli docker-cli-buildx
 
 # Create non-root user and group
 RUN addgroup -S portage && adduser -S portage -G portage
@@ -168,6 +174,8 @@ RUN mkdir -p /var/lib/clamav && \
     chmod g+w /var/lib/clamav
 
 USER portage
+
+RUN echo "${TARGETPLATFORM}" > /home/portage/platform.txt
 
 # Configure git to use the mounted .gitignore_global file
 RUN git config --global core.excludesfile /home/portage/.gitignore_global
