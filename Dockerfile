@@ -175,8 +175,6 @@ RUN mkdir -p /var/lib/clamav && \
 
 USER portage
 
-RUN echo "${TARGETPLATFORM}" > /home/portage/platform.txt
-
 # Configure git to use the mounted .gitignore_global file
 RUN git config --global core.excludesfile /home/portage/.gitignore_global
 

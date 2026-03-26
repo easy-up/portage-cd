@@ -12,14 +12,14 @@ on:
       - 'debug-*'
     tags: [ '*' ]
     paths: &build_paths
-      - .github/workflows/delivery.yml
-      - /Dockerfile
-      - /go.*
-      - /cmd/**
-      - /docker/**
-      - /pkg/**
-      - /portage.yml
-      - /.*gatecheck.yml
+      - .github/workflows/delivery.yaml
+      - Dockerfile
+      - go.*
+      - cmd/**
+      - docker/**
+      - pkg/**
+      - portage.yml
+      - .*gatecheck.yml
   pull_request:
     paths: *build_paths
 
