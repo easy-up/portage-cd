@@ -60,6 +60,7 @@ func (p *ImageBuild) Run() error {
 		CacheTo:      p.config.ImageBuild.CacheTo,
 		CacheFrom:    p.config.ImageBuild.CacheFrom,
 		BuildArgs:    p.config.ImageBuild.Args,
+		UseBuildx:    p.config.ImageBuild.UseBuildx,
 	}
 
 	opts := []shell.OptionFunc{

@@ -91,3 +91,9 @@ For [multi-stage Dockerfiles](https://docs.docker.com/build/building/multi-stage
 | CLI Flag             | Variable Name             | Config Field Name            |
 |----------------------|---------------------------|------------------------------|
 | `--squash-layers`    | `PORTAGE_BUILD_SQUASH_LAYERS` | `image.buildSquashLayers`    |
+
+### Use Buildx
+
+| CLI Flag             | Variable Name              | Config Field Name            |
+|----------------------|----------------------------|------------------------------|
+| `--use-buildx`       | `PORTAGE_BUILD_USE_BUILDX`	| `image.buildUseBuildx`       |

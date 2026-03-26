@@ -106,10 +106,16 @@ type ImageBuildOptions struct {
 	CacheTo      string
 	CacheFrom    string
 	BuildArgs    []string
+	UseBuildx    bool
 }
 
 func (o ImageBuildOptions) args() []string {
 	args := []string{"build"}
+
+	if o.UseBuildx {
+	  // replace build with buildx build
+	  args = []string{"buildx", "build"}
+	}
 
 	flags := map[string]string{
 		"--file":       o.Dockerfile,
