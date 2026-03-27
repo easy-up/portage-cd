@@ -8,6 +8,15 @@ grype:
       - id: CVE-2016-1405
       # Docker CLI issue only affects Windows
       - id: CVE-2025-15558
+      # Docker Buildx plugin issue (in grpc lib), would only effect a server, we are only using the CLI as a client.
+      - id: CVE-2026-33186
+      # Docker Buildx plugin issue (in opentelementry lib). Not exploitable.
+      - id: CVE-2026-24051
+      # Docker Buildx plugin isshe (in buildkit). Not exploitable since we aren't running or exposing the Buildkit daemon.
+      - id: CVE-2026-33748
+      # No fix available
+      - id: CVE-2026-2673
+      - id: CVE-2026-27135
 
 semgrep:
   impactRiskAcceptance:
