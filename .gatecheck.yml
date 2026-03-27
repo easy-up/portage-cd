@@ -8,3 +8,15 @@ grype:
       - id: CVE-2016-1405
       # Docker CLI issue only affects Windows
       - id: CVE-2025-15558
+
+semgrep:
+  impactRiskAcceptance:
+    enabled: true
+    low: true
+  severityLimit:
+    error:
+      # Do not error on semgrep findings. There is currently no way to ignore specific semgrep rules or finding instances.
+      enabled: false
+    warning:
+      enabled: true
+      limit: 0
