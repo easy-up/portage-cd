@@ -101,6 +101,11 @@ jobs:
           name: build-artifacts-${{ matrix.arch }}
           path: artifacts/
 
+      - name: Push Docker Images
+        run: |
+          docker push ${{ steps.vars.outputs.image_name }}
+          docker push ${{ steps.vars.outputs.podman_image_name }}
+
       - name: job summary
         shell: bash
         run: |
