@@ -133,18 +133,11 @@ jobs:
             IMAGE_TAG=${GITHUB_REF/refs\/tags\//}
           fi
           # Image Names
-          # Note: the images produced by the build are acutally manifest lists, so in order to
-          #       combine them into a single multi-platform manifest we need to reference the
-          #       individual components by digest.
-          AMD64_IMAGE_NAME="$IMAGE_REPO:amd64-$IMAGE_TAG"
-          ARM64_IMAGE_NAME="$IMAGE_REPO:arm64-$IMAGE_TAG"
-          echo "amd64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $AMD64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
-          echo "arm64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $ARM64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "amd64_image_name=$IMAGE_REPO:amd64-$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "arm64_image_name=IMAGE_REPO:arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
-          PODMAN_AMD64_IMAGE_NAME="$IMAGE_REPO:podman-amd64-$IMAGE_TAG"
-          PODMAN_ARM64_IMAGE_NAME="$IMAGE_REPO:podman-arm64-$IMAGE_TAG"
-          echo "podman_amd64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $PODMAN_AMD64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
-          echo "podman_arm64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $PODMAN_ARM64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "podman_amd64_image_name=$IMAGE_REPO:podman-amd64-$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "podman_arm64_image_name=$IMAGE_REPO:podman-arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "podman_image_name=$IMAGE_REPO:podman-$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Create and push manifest
