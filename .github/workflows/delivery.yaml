@@ -33,13 +33,9 @@ jobs:
           - arch: 'arm64'
             runs-on: ubuntu-24.04-arm
 
-    name: Build, Scan and Publish Images for ${{ matrix.arch }}
+    name: Build, Scan, and Publish Images for ${{ matrix.arch }}
     runs-on: ${{ matrix.runs-on }}
     steps:
-      # This is needed until we have multi-arch containers for all the steps
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
@@ -49,7 +45,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/.docker-cache
-          key: ${{ runner.os }}-docker-cache
+          key: ${{ runner.os }}-${{ matrix.arch }}-docker-cache
 
       - uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
@@ -77,38 +73,38 @@ jobs:
           echo "git_commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "git_description=$(git log -1 --pretty=%B | head -n 1 | tr \' _)" >> $GITHUB_OUTPUT
 
-      - name: Build and push
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+      - name: Build, Scan, and Publish Images (Docker CLI)
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@buildkit-debug
         with:
-          platforms: linux/${{ matrix.arch }}
-          push: true
-          tags: ${{ steps.vars.outputs.image_name }}
-          cache-from: "type=local,src=${{ runner.temp }}/.docker-cache"
-          cache-to: "type=local,dest=${{ runner.temp }}/.docker-cache,mode=max"
-          build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
-
-      - name: Build and push podman target
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          platforms: linux/${{ matrix.arch }}
-          push: true
-          tags: ${{ steps.vars.outputs.podman_image_name }}
-          build-args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
-          target: portage-podman
-
-      - name: Run Portage CD Scans
-        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@main
-        with:
-          image_build_enabled: false
-          image_publish_enabled: false
+          platform: linux/${{ matrix.arch }}
           tag: ${{ steps.vars.outputs.image_name }}
-          maximum_vulnerability_db_age: "1440h"
+          build_args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
+          image_build_cache_from: "type=local,src=${{ runner.temp }}/.docker-cache"
+          image_build_cache_to: "type=local,dest=${{ runner.temp }}/.docker-cache,mode=max"
+          deploy_enabled: true
+
+      - name: Build, Scan, and Publish Images (Podman CLI)
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@buildkit-debug
+        with:
+          platform: linux/${{ matrix.arch }}
+          tag: ${{ steps.vars.outputs.podman_image_name }}
+          target: portage-podman
+          build_args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
+          image_build_cache_from: "type=local,src=${{ runner.temp }}/.docker-cache"
+          image_build_cache_to: "type=local,dest=${{ runner.temp }}/.docker-cache,mode=max"
+          deploy_enabled: true
 
       - name: Store Artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: build-artifacts-${{ matrix.arch }}
           path: artifacts/
+
+      - name: Push Docker Images
+        run: |
+          docker push ${{ steps.vars.outputs.image_name }}
+          docker push ${{ steps.vars.outputs.podman_image_name }}
 
       - name: job summary
         shell: bash
@@ -137,18 +133,11 @@ jobs:
             IMAGE_TAG=${GITHUB_REF/refs\/tags\//}
           fi
           # Image Names
-          # Note: the images produced by the build are acutally manifest lists, so in order to
-          #       combine them into a single multi-platform manifest we need to reference the
-          #       individual components by digest.
-          AMD64_IMAGE_NAME="$IMAGE_REPO:amd64-$IMAGE_TAG"
-          ARM64_IMAGE_NAME="$IMAGE_REPO:arm64-$IMAGE_TAG"
-          echo "amd64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $AMD64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
-          echo "arm64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $ARM64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "amd64_image_name=$IMAGE_REPO:amd64-$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "arm64_image_name=$IMAGE_REPO:arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
-          PODMAN_AMD64_IMAGE_NAME="$IMAGE_REPO:podman-amd64-$IMAGE_TAG"
-          PODMAN_ARM64_IMAGE_NAME="$IMAGE_REPO:podman-arm64-$IMAGE_TAG"
-          echo "podman_amd64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $PODMAN_AMD64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
-          echo "podman_arm64_image_name=${IMAGE_REPO}@$(docker buildx imagetools inspect $PODMAN_ARM64_IMAGE_NAME --format '{{json .Manifest}}' | jq -r '.manifests[0].digest')" >> $GITHUB_OUTPUT
+          echo "podman_amd64_image_name=$IMAGE_REPO:podman-amd64-$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "podman_arm64_image_name=$IMAGE_REPO:podman-arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "podman_image_name=$IMAGE_REPO:podman-$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Create and push manifest
