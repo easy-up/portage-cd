@@ -134,7 +134,7 @@ jobs:
           fi
           # Image Names
           echo "amd64_image_name=$IMAGE_REPO:amd64-$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "arm64_image_name=IMAGE_REPO:arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "arm64_image_name=$IMAGE_REPO:arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "image_name=$IMAGE_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "podman_amd64_image_name=$IMAGE_REPO:podman-amd64-$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "podman_arm64_image_name=$IMAGE_REPO:podman-arm64-$IMAGE_TAG" >> $GITHUB_OUTPUT
