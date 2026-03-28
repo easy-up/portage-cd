@@ -12,8 +12,9 @@ grype:
       - id: CVE-2026-33186
       # Docker Buildx plugin issue (in opentelementry lib). Not exploitable.
       - id: CVE-2026-24051
-      # Docker Buildx plugin isshe (in buildkit). Not exploitable since we aren't running or exposing the Buildkit daemon.
+      # Docker Buildx plugin issue (in buildkit). Not exploitable since we aren't running or exposing the Buildkit daemon.
       - id: CVE-2026-33748
+      - id: CVE-2026-34040
       # No fix available
       - id: CVE-2026-2673
       - id: CVE-2026-27135
