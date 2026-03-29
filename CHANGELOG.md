@@ -9,6 +9,11 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## [v0.1.0] - 2026-03-28
+
+* Switch to building images with portage
+* Added support for multi-platform builds
+* Added --use-buildx flag
 * Updated golang dependencies
 * Updated gatecheck version to v0.9.3
 * Updated semgrep to v1.156.0 and fixed docker build issues
