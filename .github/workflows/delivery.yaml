@@ -74,7 +74,7 @@ jobs:
           echo "git_description=$(git log -1 --pretty=%B | head -n 1 | tr \' _)" >> $GITHUB_OUTPUT
 
       - name: Build, Scan, and Publish Images (Docker CLI)
-        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@buildkit-debug
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@ef2811552d431969ecee79fb352cb16fcc17a7b2
         with:
           platform: linux/${{ matrix.arch }}
           tag: ${{ steps.vars.outputs.image_name }}
@@ -84,7 +84,8 @@ jobs:
           deploy_enabled: true
 
       - name: Build, Scan, and Publish Images (Podman CLI)
-        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@buildkit-debug
+        # portage-cd-action Version 0.0.6
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@ef2811552d431969ecee79fb352cb16fcc17a7b2
         with:
           platform: linux/${{ matrix.arch }}
           tag: ${{ steps.vars.outputs.podman_image_name }}
