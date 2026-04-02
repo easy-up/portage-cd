@@ -44,8 +44,14 @@ jobs:
       - name: Load Docker Cache
         uses: actions/cache@v5
         with:
-          path: ${{ runner.temp }}/.docker-cache
-          key: ${{ runner.os }}-${{ matrix.arch }}-docker-cache
+          path: .cache
+          key: ${{ runner.os }}-${{ matrix.arch }}-image-build-and-scan-cache
+
+      - name: Fix cache dir permissions
+        run: |
+          mkdir -p .cache/docker
+          mkdir -p .cache/grype-db
+          chmod -R u+rwX .cache
 
       - uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
@@ -74,13 +80,13 @@ jobs:
           echo "git_description=$(git log -1 --pretty=%B | head -n 1 | tr \' _)" >> $GITHUB_OUTPUT
 
       - name: Build, Scan, and Publish Images (Docker CLI)
-        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@ef2811552d431969ecee79fb352cb16fcc17a7b2
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@4023d89c8cad38436fcf42583af91a6bd3088053
         with:
           platform: linux/${{ matrix.arch }}
           tag: ${{ steps.vars.outputs.image_name }}
           build_args: "VERSION=${{ steps.vars.outputs.version }},GIT_COMMIT=${{ steps.vars.outputs.git_commit }},GIT_DESCRIPTION=${{ steps.vars.outputs.git_description }}"
-          image_build_cache_from: "type=local,src=${{ runner.temp }}/.docker-cache"
-          image_build_cache_to: "type=local,dest=${{ runner.temp }}/.docker-cache,mode=max"
+          image_build_cache_from: "type=local,src=.cache/docker"
+          image_build_cache_to: "type=local,dest=.cache/docker,mode=max"
           deploy_enabled: true
 
       - name: Build, Scan, and Publish Images (Podman CLI)
