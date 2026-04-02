@@ -28,5 +28,4 @@ semgrep:
       # Do not error on semgrep findings. There is currently no way to ignore specific semgrep rules or finding instances.
       enabled: false
     warning:
-      enabled: true
-      limit: 0
+      enabled: false

@@ -31,6 +31,7 @@ type ImageScan struct {
 		tarImageFile      *os.File
 		syftFilename      string
 		grypeFilename     string
+		clamavEnabled     bool
 		clamavFilename    string
 		bundleFilename    string
 		tarImageFilename  string
@@ -84,11 +85,14 @@ func (p *ImageScan) preRun() error {
 		return err
 	}
 
-	p.runtime.clamavFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.ClamavFilename)
-	p.runtime.clamavFile, err = OpenOrCreateFile(p.runtime.clamavFilename)
-	if err != nil {
-		slog.Error("cannot open clam virus report file", "filename", p.runtime.clamavFilename, "error", err)
-		return err
+  p.runtime.clamavEnabled = p.config.ImageScan.ClamavEnabled
+  if (p.runtime.clamavEnabled) {
+		p.runtime.clamavFilename = path.Join(p.config.ArtifactDir, p.config.ImageScan.ClamavFilename)
+		p.runtime.clamavFile, err = OpenOrCreateFile(p.runtime.clamavFilename)
+		if err != nil {
+			slog.Error("cannot open clam virus report file", "filename", p.runtime.clamavFilename, "error", err)
+			return err
+		}
 	}
 
 	// Create temporary image tar file for writing
@@ -233,66 +237,74 @@ func (p *ImageScan) dockerSaveJob(task *AsyncTask) {
 func (p *ImageScan) freshclamJob(task *AsyncTask) {
 	defer task.Close()
 
-	task.Logger.Debug("update clamav virus definitions database")
+	if (p.runtime.clamavEnabled) {
+		task.Logger.Debug("update clamav virus definitions database")
 
-	task.ExitError = shell.Freshclam(
-		shell.WithDryRun(p.DryRunEnabled),
-		shell.WithCtx(p.runtime.ctx),
-		shell.WithFailTrigger(p.runtime.cancelFunc),
-		shell.WithErrorOnly(task.StderrPipeWriter),
-		shell.WithLogger(task.Logger),
-		shell.WithStdout(task.StderrPipeWriter), // this is on purpose, we don't want fresh clam in stdout
-		shell.WithStderr(task.StderrPipeWriter),
-	)
+		task.ExitError = shell.Freshclam(
+			shell.WithDryRun(p.DryRunEnabled),
+			shell.WithCtx(p.runtime.ctx),
+			shell.WithFailTrigger(p.runtime.cancelFunc),
+			shell.WithErrorOnly(task.StderrPipeWriter),
+			shell.WithLogger(task.Logger),
+			shell.WithStdout(task.StderrPipeWriter), // this is on purpose, we don't want fresh clam in stdout
+			shell.WithStderr(task.StderrPipeWriter),
+		)
+	} else {
+		task.Logger.Warn("Skipping clamav virus definitions update")
+	}
 }
 
 func (p *ImageScan) clamscanJob(task *AsyncTask, dockerSaveTask *AsyncTask, freshClamTask *AsyncTask) {
 	defer task.Close()
-	defer p.runtime.clamavFile.Close()
+	if (p.runtime.clamavEnabled) {
+		defer p.runtime.clamavFile.Close()
 
-	task.Logger.Debug("run clamav virus scan after freshclam and docker save complete")
+		task.Logger.Debug("run clamav virus scan after freshclam and docker save complete")
 
-	err := dockerSaveTask.Wait()
-	if err != nil {
-		task.Logger.Debug("docker save task failed before clamscan could run")
-		task.ExitError = errors.New("clamscan task canceled")
-		return
-	}
-
-	err = freshClamTask.Wait()
-	if err != nil {
-		task.Logger.Debug("freshclam task failed before clamscan could run")
-		task.ExitError = errors.New("clamscan task canceled")
-		return
-	}
-	ctx, cancel := context.WithCancel(p.runtime.ctx)
-	// Report to the log every few seconds while the command is running
-	go func() {
-		for {
-			after := time.After(time.Second * 5)
-			select {
-			case <-ctx.Done():
-				return
-			case <-after:
-				task.Logger.Debug("clamscan running...")
-			}
+		err := dockerSaveTask.Wait()
+		if err != nil {
+			task.Logger.Debug("docker save task failed before clamscan could run")
+			task.ExitError = errors.New("clamscan task canceled")
+			return
 		}
-	}()
 
-	go func() {
-		defer cancel()
-		reportWriter := io.MultiWriter(p.runtime.clamavFile, p.runtime.postSummaryBuffer)
-		task.ExitError = shell.Clamscan(
-			shell.WithDryRun(p.DryRunEnabled),
-			shell.WithLogger(task.Logger),
-			shell.WithStdout(reportWriter), // where the report goes
-			shell.WithStderr(task.StderrPipeWriter),
-			shell.WithTarFilename(p.runtime.tarImageFilename),
-		)
-	}()
-	<-ctx.Done()
-	if task.ExitError != nil {
-		_ = os.Remove(p.runtime.clamavFilename)
+		err = freshClamTask.Wait()
+		if err != nil {
+			task.Logger.Debug("freshclam task failed before clamscan could run")
+			task.ExitError = errors.New("clamscan task canceled")
+			return
+		}
+		ctx, cancel := context.WithCancel(p.runtime.ctx)
+		// Report to the log every few seconds while the command is running
+		go func() {
+			for {
+				after := time.After(time.Second * 5)
+				select {
+				case <-ctx.Done():
+					return
+				case <-after:
+					task.Logger.Debug("clamscan running...")
+				}
+			}
+		}()
+
+		go func() {
+			defer cancel()
+			reportWriter := io.MultiWriter(p.runtime.clamavFile, p.runtime.postSummaryBuffer)
+			task.ExitError = shell.Clamscan(
+				shell.WithDryRun(p.DryRunEnabled),
+				shell.WithLogger(task.Logger),
+				shell.WithStdout(reportWriter), // where the report goes
+				shell.WithStderr(task.StderrPipeWriter),
+				shell.WithTarFilename(p.runtime.tarImageFilename),
+			)
+		}()
+		<-ctx.Done()
+		if task.ExitError != nil {
+			_ = os.Remove(p.runtime.clamavFilename)
+		}
+	} else {
+		task.Logger.Warn("Skipping clamav virus")
 	}
 }
 
@@ -369,8 +381,10 @@ func (p *ImageScan) gatecheckBundleJob(task *AsyncTask, syftTask *AsyncTask, gry
 	grypeOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.grypeFilename), shell.WithBundleTags("type:grype"), shell.WithWaitFunc(grypeTask.Wait))
 	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(grypeOpts...))
 
-	clamavOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.clamavFilename), shell.WithBundleTags("type:clamscan"), shell.WithWaitFunc(clamscanTask.Wait))
-	task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(clamavOpts...))
+  if (p.runtime.clamavEnabled) {
+		clamavOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.clamavFilename), shell.WithBundleTags("type:clamscan"), shell.WithWaitFunc(clamscanTask.Wait))
+		task.ExitError = errors.Join(task.ExitError, shell.GatecheckBundleAdd(clamavOpts...))
+	}
 }
 
 func (p *ImageScan) postRunJob(task *AsyncTask, allTasks ...*AsyncTask) {

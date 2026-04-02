@@ -235,6 +235,13 @@ var metaConfig = []metaConfigField{
 		Description:     "The filename for the grype vulnerability report - must contain 'grype'",
 	},
 	{
+	  Key:             "imagescan.clamavenabled",
+	  ActionInputName: "clamav_enabled",
+	  ActionType:      "String",
+	  Default:         nil,
+	  Description:     "Enable/Disable the clamav scan during the image scan pipeline",
+	},
+	{
 		Key:             "imagescan.clamavfilename",
 		Env:             "PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME",
 		ActionInputName: "clamav_filename",
@@ -365,6 +372,7 @@ var defaults = map[string]defaultValues{
 	"imagescan.enabled":        {value: true, configPath: "ImageScan.Enabled"},
 	"imagescan.syftfilename":   {value: "syft-sbom-report.json", configPath: "ImageScan.SyftFilename"},
 	"imagescan.grypefilename":  {value: "grype-vulnerability-report-full.json", configPath: "ImageScan.GrypeFilename"},
+	"imagescan.clamavenabled":  {value: true, configPath: "ImageScan.ClamavEnabled"},
 	"imagescan.clamavfilename": {value: "clamav-virus-report.txt", configPath: "ImageScan.ClamavFilename"},
 
 	"codescan.enabled":             {value: true, configPath: "CodeScan.Enabled"},
