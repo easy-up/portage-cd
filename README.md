@@ -110,6 +110,7 @@ Note: `(none)` means unset, left blank
 | imagebuild.usebuildx           | PORTAGE_IMAGE_BUILD_USE_BUILDX           | 0                                    | Use buildx for building images - Only Supported with Docker CLI                    |
 | imagepublish.bundletag         | PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG         |                                      | The full image tag for the target gatecheck bundle image blob                      |
 | imagepublish.enabled           | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the image publish pipeline                                          |
+| imagescan.clamavenabled        | PORTAGE_IMAGE_SCAN_CLAMAV_ENABLED        | 1                                    | Enable/Disable clamav scan in the image scan pipeline                              |
 | imagescan.clamavfilename       | PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
 | imagescan.enabled              | PORTAGE_IMAGE_SCAN_ENABLED               | 1                                    | Enable/Disable the image scan pipeline                                             |
 | imagescan.grypeconfigfilename  | PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |

@@ -53,6 +53,9 @@ func newRunCommand() *cobra.Command {
 	imageScanCmd.Flags().String("grype-filename", "", "the output filename for the grype vulnerability report")
 	_ = viper.BindPFlag("imagescan.grypefilename", imageScanCmd.Flags().Lookup("grype-filename"))
 
+	imageScanCmd.Flags().Bool("clamav-enabled", true, "Enable/disable the ClamAV scan")
+	_ = viper.BindPFlag("imagescan.clamavenabled", imageScanCmd.Flags().Lookup("clamav-enabled"))
+
 	imageScanCmd.Flags().String("clamav-filename", "", "the output filename for the ClamAV scan report")
 	_ = viper.BindPFlag("imagescan.clamavfilename", imageScanCmd.Flags().Lookup("clamav-filename"))
 
