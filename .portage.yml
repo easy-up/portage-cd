@@ -46,6 +46,5 @@ imagePublish:
 deploy:
   enabled: false                                   # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
   gatecheckConfigFilename: ".custom-gatecheck.yml" # Filename for gatecheck config which specifies the validation rules and limits applied during the deployment process
-  successWebhooks:
-    - url: "https://belay-api.dev.holomuatech.online/Build/SubmitArtifacts" # Using the same endpoint from .custom-gatecheck.yml for consistency
-      authorizationVar: "DEPLOY_WEBHOOK_AUTH_HEADER"                        # Environment variable containing the auth header
+  # No successWebhooks here — portage-cd's own self-build should not post to belay.
+  # Consumers configure successWebhooks in their own .portage.yml. See pkg/pipelines/deploy.go.

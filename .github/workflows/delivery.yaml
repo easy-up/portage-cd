@@ -151,4 +151,16 @@ jobs:
             --amend "${{ steps.vars.outputs.podman_amd64_image_name }}" \
             --amend "${{ steps.vars.outputs.podman_arm64_image_name }}"
           docker manifest push "${{ steps.vars.outputs.podman_image_name }}"
+
+      - name: Tag as belay-main-latest
+        if: github.ref == 'refs/heads/belay_main'
+        run: |
+          docker manifest create "ghcr.io/easy-up/portage:belay-main-latest" \
+            --amend "${{ steps.vars.outputs.amd64_image_name }}" \
+            --amend "${{ steps.vars.outputs.arm64_image_name }}"
+          docker manifest push "ghcr.io/easy-up/portage:belay-main-latest"
+          docker manifest create "ghcr.io/easy-up/portage:podman-belay-main-latest" \
+            --amend "${{ steps.vars.outputs.podman_amd64_image_name }}" \
+            --amend "${{ steps.vars.outputs.podman_arm64_image_name }}"
+          docker manifest push "ghcr.io/easy-up/portage:podman-belay-main-latest"
   
