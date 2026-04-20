@@ -9,6 +9,22 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+## [v0.1.0] - 2026-03-28
+
+* Switch to building images with portage
+* Added support for multi-platform builds
+* Added --use-buildx flag
+* Updated golang dependencies
+* Updated gatecheck version to v0.9.3
+* Updated semgrep to v1.156.0 and fixed docker build issues
+* Updated syft to v1.42.3
+* Updated grype to v0.110.0
+* Updated oras to v1.3.1
+
+## [v0.0.6] - 2025-03-29
+
+* Updated gatecheck version to v0.9.2
+
 ## [v0.0.5] - 2025-02-14
 
 * Updated gatecheck version to v0.9.1

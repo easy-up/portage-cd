@@ -41,6 +41,9 @@ func newRunCommand() *cobra.Command {
 	imageBuildCmd.Flags().Bool("squash-layers", false, "image build squash all layers into one option")
 	_ = viper.BindPFlag("imagebuild.squashlayers", imageBuildCmd.Flags().Lookup("squash-layers"))
 
+	imageBuildCmd.Flags().Bool("use-buildx", false, "Use Docker Buildx for building the image")
+	_ = viper.BindPFlag("imagebuild.usebuildx", imageBuildCmd.Flags().Lookup("use-buildx"))
+
 	// run image-scan
 	imageScanCmd := newBasicCommand("image-scan", "run security scans on an image", runImageScan)
 

@@ -1,23 +1,52 @@
-ARG ALPINE_VERSION=3.20
+ARG ALPINE_VERSION=3.23
 
-# Use pre-built semgrep-core to avoid OCaml dependency conflicts
-FROM semgrep/semgrep:latest AS semgrep-extract
+ARG TARGETPLATFORM
 
-# Extract only the semgrep-core binary without Python runtime
-FROM alpine:3.20 AS build-semgrep-core
-RUN apk add --no-cache file
-COPY --from=semgrep-extract /usr/bin/semgrep-core /usr/local/bin/semgrep-core
+FROM alpine:$ALPINE_VERSION AS build-semgrep-core
+
+ARG TARGETPLATFORM
+ARG OCAML_VERSION=5.3.0
+
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add bash build-base git make rsync opam
+
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam \
+    opam init --disable-sandboxing -v && opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda -y -v
+
+WORKDIR /src
+
+# v1.156.0
+# Using a commit hash because tags are less stable than commits
+ARG SEMGREP_VERSION_COMMIT=ab584982f6ecdaaa7954a14e5350a70c060e097f
+
+RUN git clone --recurse-submodules --revision ${SEMGREP_VERSION_COMMIT} --depth=1 https://github.com/semgrep/semgrep
+
+WORKDIR /src/semgrep
+
+# Install semgrep fork of the compiler
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam make pin-ocaml-fork
+
+ARG OPAMSOLVERTIMEOUT=1800
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam make install-deps
+
+# Compile (and minimal test) semgrep-core
+RUN --mount=type=cache,id=opam-${TARGETPLATFORM},target=/root/.opam opam exec -- make core
+
 # Sanity check
-RUN /usr/local/bin/semgrep-core -version
+RUN ./bin/semgrep-core -version
 
 FROM golang:alpine$ALPINE_VERSION AS build-prerequisites
 
-ARG GRYPE_VERSION=v0.78.0
-ARG SYFT_VERSION=v1.5.0
-ARG GITLEAKS_VERSION=v8.18.3
+ARG TARGETPLATFORM
+ARG GRYPE_VERSION=v0.110.0
+ARG GRYPE_VERSION_COMMIT=dee8de483dfba5b4e0bc0aa8e4ab2ce52137e490
+ARG SYFT_VERSION=v1.42.3
+ARG SYFT_VERSION_COMMIT=860126c650c2d05b63b83a3895e41268162315a3
+ARG GITLEAKS_VERSION=v8.30.1
+ARG GITLEAKS_VERSION_COMMIT=83d9cd684c87d95d656c1458ef04895a7f1cbd8e
 ARG GATECHECK_VERSION=belay_main
-
-ARG ORAS_VERSION=v1.2.0
+ARG GATECHECK_VERSION_COMMIT=eb0f8116c2083acf6cade01caa8d5cf8e14c5efd
+ARG ORAS_VERSION=v1.3.1
+ARG ORAS_VERSION_COMMIT=e3f584fabe332396414a44b7a83d029cfa5fc201
 
 RUN apk --no-cache add ca-certificates git make
 
@@ -30,29 +59,35 @@ RUN git clone --branch ${GATECHECK_VERSION} --depth=1 --single-branch https://gi
 RUN git clone --branch ${ORAS_VERSION} --depth=1 --single-branch https://github.com/oras-project/oras /app/oras
 
 RUN cd /app/grype && \
+    git checkout ${GRYPE_VERSION_COMMIT} && \
     go build -ldflags="-w -s -extldflags '-static' -X 'main.version=${GRYPE_VERSION}' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/grype
 
 RUN cd /app/syft && \
+    git checkout ${SYFT_VERSION_COMMIT} && \
     go build -ldflags="-w -s -extldflags '-static' -X 'main.version=${SYFT_VERSION}' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/syft
 
 RUN cd /app/gitleaks && \
+    git checkout ${GITLEAKS_VERSION_COMMIT} && \
     go build -ldflags="-s -w -X=github.com/zricethezav/gitleaks/v8/cmd.Version=${GITLEAKS_VERSION}" -o /usr/local/bin .
 
 RUN cd /app/gatecheck && \
+    git checkout ${GATECHECK_VERSION_COMMIT} && \
     go build -ldflags="-s -w -X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/gatecheck
 
 RUN cd /app/oras && \
+    git checkout ${ORAS_VERSION_COMMIT} && \
     make build-linux-amd64 && \
     mv bin/linux/amd64/oras /usr/local/bin/oras
 
 FROM golang:alpine$ALPINE_VERSION AS build
 
+ARG TARGETPLATFORM
 ARG VERSION
 ARG GIT_COMMIT
 ARG GIT_DESCRIPTION
 
 # install build dependencies
-RUN apk add --no-cache git
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add git
 
 WORKDIR /app/src
 
@@ -69,24 +104,21 @@ RUN mkdir -p ../bin && \
 
 FROM alpine:$ALPINE_VERSION AS portage-base
 
-RUN apk --no-cache add git ca-certificates tzdata clamav gettext
+ARG TARGETPLATFORM
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add git ca-certificates tzdata clamav gettext
 
 COPY --from=build-prerequisites /usr/local/bin/grype /usr/local/bin/grype
 COPY --from=build-prerequisites /usr/local/bin/syft /usr/local/bin/syft
 COPY --from=build-prerequisites /usr/local/bin/gitleaks /usr/local/bin/gitleaks
 COPY --from=build-prerequisites /usr/local/bin/gatecheck /usr/local/bin/gatecheck
 COPY --from=build-prerequisites /usr/local/bin/oras /usr/local/bin/oras
-COPY --from=build-semgrep-core /usr/local/bin/semgrep-core /usr/local/bin/osemgrep
+COPY --from=build-semgrep-core /src/semgrep/_build/install/default/bin/semgrep-core /usr/local/bin/osemgrep
 
 COPY --from=build /app/bin/portage /usr/local/bin/portage
 
 WORKDIR /app
 
 ENV PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL="true"
-
-# Create non-root user and group
-RUN addgroup -S portage && adduser -S portage -G portage
-USER portage
 
 ENTRYPOINT ["portage"]
 
@@ -98,11 +130,9 @@ LABEL io.artifacthub.package.license="Apache-2.0"
 
 FROM portage-base AS portage-podman
 
-USER root
+ARG TARGETPLATFORM
 # Update repositories and install packages
-RUN apk add --no-cache --update-cache \
-    podman \
-    fuse-overlayfs
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add podman fuse-overlayfs
 
 COPY docker/storage.conf /etc/containers/
 COPY docker/containers.conf /etc/containers/
@@ -132,13 +162,17 @@ LABEL org.opencontainers.image.title="portage-podman"
 
 FROM portage-base
 
-USER root
-RUN apk update && apk add --no-cache docker-cli-buildx
-# Add clamav permissions for portage user
+ARG TARGETPLATFORM
+RUN --mount=type=cache,id=apk-${TARGETPLATFORM},target=/var/cache/apk apk add docker-cli docker-cli-buildx
+
+# Create non-root user and group
+RUN addgroup -S portage && adduser -S portage -G portage
+
 RUN mkdir -p /var/lib/clamav && \
     chown portage /var/lib/clamav && \
     chown portage /etc/clamav && \
     chmod g+w /var/lib/clamav
+
 USER portage
 
 # Configure git to use the mounted .gitignore_global file

@@ -140,33 +140,34 @@ portage config init .portage.yml
 
 Note: `(none)` means unset, left blank
 
-| Config Key                        | Environment Variable                     | Default Value                        | Description                                                                        |
-| --------------------------------- |------------------------------------------| ------------------------------------ |------------------------------------------------------------------------------------|
-| codescan.enabled                  | PORTAGE_CODE_SCAN_ENABLED                | 1                                    | Enable/Disable the code scan pipeline                                              |
-| codescan.gitleaksfilename         | PORTAGE_CODE_SCAN_GITLEAKS_FILENAME      | gitleaks-secrets-report.json         | The filename for the gitleaks secret report - must contain 'gitleaks'              |
-| codescan.gitleakssrcdir           | PORTAGE_CODE_SCAN_GITLEAKS_SRC_DIR       | .                                    | The target directory for the gitleaks scan                                         |
-| codescan.semgrepfilename          | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
-| codescan.semgreprules             | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
-| codescan.semgrepexperimental      | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL   | false                                | Enable the use of the semgrep experimental CLI                                     |
-| deploy.enabled                    | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the publishing to a registry pipeline                                                 |
-| deploy.gatecheckconfigfilename    | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | .gatecheck.yml                                    | The filename for the gatecheck config                                              |
-| gatecheckbundlefilename           | PORTAGE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |
-| imagebuild.args                   | PORTAGE_IMAGE_BUILD_ARGS                 | -                                    | Comma seperated list of build time variables                                       |
-| imagebuild.builddir               | PORTAGE_IMAGE_BUILD_DIR                  | .                                    | The build directory to using during an image build                                 |
-| imagebuild.cachefrom              | PORTAGE_IMAGE_BUILD_CACHE_FROM           | -                                    | External cache sources (e.g., "user/app:cache", "type=local,src=path/to/dir")      |
-| imagebuild.cacheto                | PORTAGE_IMAGE_BUILD_CACHE_TO             | -                                    | Cache export destinations (e.g., "user/app:cache", "type=local,src=path/to/dir")   |
-| imagebuild.dockerfile             | PORTAGE_IMAGE_BUILD_DOCKERFILE           | Dockerfile                           | The Dockerfile/Containerfile to use during an image build                          |
-| imagebuild.enabled                | PORTAGE_IMAGE_BUILD_ENABLED              | 1                                    | Enable/Disable the image build pipeline                                            |
-| imagebuild.platform               | PORTAGE_IMAGE_BUILD_PLATFORM             | -                                    | The target platform for build                                                      |
-| imagebuild.squashlayers           | PORTAGE_IMAGE_BUILD_SQUASH_LAYERS        | 0                                    | squash image layers - Only Supported with Podman CLI                               |
-| imagebuild.target                 | PORTAGE_IMAGE_BUILD_TARGET               | -                                    | The target build stage to build (e.g., [linux/amd64])                              |
-| imagepublish.bundletag            | PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG         |                                      | The full image tag for the target gatecheck bundle image blob                      |
-| imagepublish.enabled              | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the image publish pipeline                                          |
-| imagescan.clamavfilename          | PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
-| imagescan.enabled                 | PORTAGE_IMAGE_SCAN_ENABLED               | 1                                    | Enable/Disable the image scan pipeline                                             |
-| imagescan.grypeconfigfilename     | PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
-| imagescan.grypefilename           | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
-| imagescan.syftfilename            | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
+| Config Key                     | Environment Variable                     | Default Value                        | Description                                                                        |
+|--------------------------------|------------------------------------------|--------------------------------------|------------------------------------------------------------------------------------|
+| codescan.enabled               | PORTAGE_CODE_SCAN_ENABLED                | 1                                    | Enable/Disable the code scan pipeline                                              |
+| codescan.gitleaksfilename      | PORTAGE_CODE_SCAN_GITLEAKS_FILENAME      | gitleaks-secrets-report.json         | The filename for the gitleaks secret report - must contain 'gitleaks'              |
+| codescan.gitleakssrcdir        | PORTAGE_CODE_SCAN_GITLEAKS_SRC_DIR       | .                                    | The target directory for the gitleaks scan                                         |
+| codescan.semgrepfilename       | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
+| codescan.semgreprules          | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
+| codescan.semgrepexperimental   | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL   | false                                | Enable the use of the semgrep experimental CLI                                     |
+| deploy.enabled                 | PORTAGE_DEPLOY_ENABLED                   | 1                                    | Enable/Disable the publishing to a registry pipeline                               |
+| deploy.gatecheckconfigfilename | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | .gatecheck.yml                       | The filename for the gatecheck config                                              |
+| gatecheckbundlefilename        | PORTAGE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |
+| imagebuild.args                | PORTAGE_IMAGE_BUILD_ARGS                 | -                                    | Comma seperated list of build time variables                                       |
+| imagebuild.builddir            | PORTAGE_IMAGE_BUILD_DIR                  | .                                    | The build directory to using during an image build                                 |
+| imagebuild.cachefrom           | PORTAGE_IMAGE_BUILD_CACHE_FROM           | -                                    | External cache sources (e.g., "user/app:cache", "type=local,src=path/to/dir")      |
+| imagebuild.cacheto             | PORTAGE_IMAGE_BUILD_CACHE_TO             | -                                    | Cache export destinations (e.g., "user/app:cache", "type=local,src=path/to/dir")   |
+| imagebuild.dockerfile          | PORTAGE_IMAGE_BUILD_DOCKERFILE           | Dockerfile                           | The Dockerfile/Containerfile to use during an image build                          |
+| imagebuild.enabled             | PORTAGE_IMAGE_BUILD_ENABLED              | 1                                    | Enable/Disable the image build pipeline                                            |
+| imagebuild.platform            | PORTAGE_IMAGE_BUILD_PLATFORM             | -                                    | The target platform for build                                                      |
+| imagebuild.squashlayers        | PORTAGE_IMAGE_BUILD_SQUASH_LAYERS        | 0                                    | squash image layers - Only Supported with Podman CLI                               |
+| imagebuild.target              | PORTAGE_IMAGE_BUILD_TARGET               | -                                    | The target build stage to build (e.g., [linux/amd64])                              |
+| imagebuild.usebuildx           | PORTAGE_IMAGE_BUILD_USE_BUILDX           | 0                                    | Use buildx for building images - Only Supported with Docker CLI                    |
+| imagepublish.bundletag         | PORTAGE_IMAGE_PUBLISH_BUNDLE_TAG         |                                      | The full image tag for the target gatecheck bundle image blob                      |
+| imagepublish.enabled           | PORTAGE_IMAGE_PUBLISH_ENABLED            | 1                                    | Enable/Disable the image publish pipeline                                          |
+| imagescan.clamavfilename       | PORTAGE_IMAGE_SCAN_CLAMAV_FILENAME       | clamav-virus-report.txt              | The filename for the clamscan virus report - must contain 'clamav'                 |
+| imagescan.enabled              | PORTAGE_IMAGE_SCAN_ENABLED               | 1                                    | Enable/Disable the image scan pipeline                                             |
+| imagescan.grypeconfigfilename  | PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
+| imagescan.grypefilename        | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
+| imagescan.syftfilename         | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
 
 The portage pipeline is broken into a number of stages.  Below are the stages and their purpose:
 
@@ -183,9 +184,6 @@ When running portage in a docker container there are some pipelines that need to
 In order for the docker CLI in the portage to connect to the docker daemon running on the host machine,
 you must either mount the `/var/run/docker.sock` in the `portage` container, or provide configuration for
 accessing the docker daemon remotely with the `DOCKER_HOST` environment variable.
-
-If you don't have access to Artifactory to pull in the Omnibus base image, you can build the image manually which is
-in `images/omnibus/Dockerfile`.
 
 ### Pulling and Running the Portage Image
 

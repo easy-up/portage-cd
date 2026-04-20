@@ -43,6 +43,7 @@ type configImageBuild struct {
 	CacheFrom    string   `mapstructure:"cacheFrom"`
 	SquashLayers bool     `mapstructure:"squashLayers"`
 	Args         []string `mapstructure:"args"`
+	UseBuildx    bool     `mapstructure:"useBuildx"`
 }
 
 type configImageScan struct {
@@ -50,6 +51,7 @@ type configImageScan struct {
 	SyftFilename        string `mapstructure:"syftFilename"`
 	GrypeConfigFilename string `mapstructure:"grypeConfigFilename"`
 	GrypeFilename       string `mapstructure:"grypeFilename"`
+	ClamavEnabled       bool   `mapstructure:"clamavEnabled"`
 	ClamavFilename      string `mapstructure:"clamavFilename"`
 }
 
@@ -192,6 +194,14 @@ var metaConfig = []metaConfigField{
 		ActionType:      "List",
 		Default:         nil,
 		Description:     "Comma seperated list of build time variables",
+	},
+	{
+	  Key:             "imagebuild.usebuildx",
+	  Env:             "PORTAGE_IMAGE_BUILD_USE_BUILDX",
+	  ActionInputName: "use_buildx",
+	  ActionType:      "Bool",
+	  Default:         nil,
+	  Description:     "Use Docker Buildx for building images - Only Supported with Docker CLI",
 	},
 	{
 		Key:             "imagescan.enabled",
@@ -359,6 +369,7 @@ var defaults = map[string]defaultValues{
 	"imagebuild.builddir":     {value: ".", configPath: "ImageBuild.BuildDir"},
 	"imagebuild.dockerfile":   {value: "Dockerfile", configPath: "ImageBuild.Dockerfile"},
 	"imagebuild.squashlayers": {value: false, configPath: "ImageBuild.SquashLayers"},
+	"imagebuild.usebuildx":    {value: false, configPath: "ImageBuild.UseBuildx"},
 
 	"imagescan.enabled":        {value: true, configPath: "ImageScan.Enabled"},
 	"imagescan.syftfilename":   {value: "syft-sbom-report.json", configPath: "ImageScan.SyftFilename"},
