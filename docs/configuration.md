@@ -33,8 +33,8 @@ restricted or for overriding specific configurations without changing the config
 
 To use environment variables:
 
-- Prefix your environment variables with a specific prefix (e.g., `WF_`) to avoid conflicts with other applications.
-- Use the environment variable names that correspond to the configuration options you wish to set.
+- Portage CD environment variables are prefixed with `PORTAGE_` to avoid conflicts with other applications (e.g. `PORTAGE_IMAGE_BUILD_DIR`, `PORTAGE_CODE_SCAN_ENABLED`).
+- See the full list of supported variables in the [project README](../README.md).
 
 ### Using CLI Arguments
 

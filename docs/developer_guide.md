@@ -1,12 +1,17 @@
 # Developer Guide
 
-TODO: Project info, goals, etc.
+Portage CD is a Go CLI that orchestrates a fixed, opinionated sequence of security-analysis tools (gitleaks, semgrep, syft, grype, clamav) around a container build, then bundles their artifacts via [gatecheck](https://github.com/easy-up/gatecheck) for validation and optional webhook delivery. The design goal is to give users a pre-assembled, hardened pipeline that runs identically from a local shell, a CI runner, or a container — without recreating shell-argument glue in every CI tool.
 
 ## [Getting Started](./getting_started.md)
 
 ## Project Layout
 
-TODO: Add the philosophy behind the project layout
+The code is organized around two layers:
+
+- **`pkg/shell/`** — thin, opinionated wrappers around each external tool. Each tool gets its own file (e.g. `grype.go`, `syft.go`, `docker.go`) with functions that expose *only the flags portage actually uses*. This constrains the surface area — callers can't sneak arbitrary shell into a command.
+- **`pkg/pipelines/`** — pipeline orchestration. Each pipeline file (`image-scan.go`, `code-scan.go`, etc.) composes shell functions into an ordered, concurrency-aware sequence. `AsyncTask` handles inter-stage dependencies (e.g. grype waits on syft).
+
+`cmd/portage/` is the Cobra CLI entry point; it translates flags into the `pkg/pipelines/config.go` struct and dispatches to the appropriate pipeline.
 
 ### Shell
 
@@ -114,6 +119,10 @@ See `pkg/shell/docker.go` for a more complex example of a command with a lot of 
 
 ### Pipelines
 
+Pipelines live in `pkg/pipelines/` — one file per pipeline (e.g. `image-scan.go`, `code-scan.go`, `image-build.go`, `deploy.go`). Each pipeline constructs an ordered sequence of `AsyncTask`s (see Concurrency below), manages the artifact file handles, and reports exit status.
+
+Pipelines are composed into higher-level commands in `cmd/portage/cli/v0/pipelines.go`. The top-level `portage run all` is just `code-scan` → `image-build` → `image-scan` → `image-publish` → `deploy` in sequence, gated by each stage's `enabled` flag.
+
 ## Concepts
 
 ### Concurrency
@@ -178,12 +187,13 @@ To create a new release of portage-cd and publish a new container image:
    ```bash
    git tag --sort=-version:refname | head -5
    ```
-   Follow semantic versioning. For current `v0.0.6`, the next version would be `v0.0.7`.
+   Follow semantic versioning. Bump patch for bug fixes, minor for features, major for breaking changes.
 
 5. **Create and push the new tag**
    ```bash
-   git tag v0.0.7
-   git push origin v0.0.7
+   # Replace with the chosen version
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
    ```
 
 6. **Verify the release**

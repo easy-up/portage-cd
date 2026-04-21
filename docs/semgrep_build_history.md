@@ -1,6 +1,8 @@
-# Pipeline Debugging Guide
+# Semgrep Build History (2025)
 
-This document captures the history and debugging process for critical pipeline issues encountered during development.
+> **Status (April 2026):** Resolved. Semgrep-core now builds successfully in CI via the from-source OCaml path pinned by `SEMGREP_VERSION_COMMIT` in the Dockerfile (Alpine 3.23, OCaml 5.3.0). The first cold-cache build is slow (~40 min on GitHub Actions) but warm-cache rebuilds benefit from buildx `opam` and `apk` cache mounts. This document is preserved for historical context on the Sept 2025 outage and the reasoning behind the current approach.
+
+This document captures the history and debugging process for the semgrep build outage that blocked releases throughout September 2025.
 
 ## Semgrep OCaml Build Failures (September 2025)
 
@@ -58,19 +60,18 @@ Compared our approach with official semgrep Dockerfile:
 - **CLI Features**: Missing Python-based features (rule packaging, output formatting)
 - **Compatibility**: Limited to semgrep-core API vs full semgrep CLI
 
-### Current Status (v0.0.8)
+### Status Timeline
 
-**Working Components**:
+**Sept 2025 (initial outage):**
 - ✅ Go binary compilation (portage-cd core)
 - ✅ Gatecheck integration from belay_main branch
 - ✅ Grype, Syft, Gitleaks, ClamAV builds
-- ✅ Container base image and runtime configuration
-
-**Broken Components**:
-- ❌ Semgrep-core compilation due to OCaml ecosystem drift
+- ❌ Semgrep-core compilation (OCaml ecosystem drift)
 - ❌ Code scanning pipeline (semgrep-dependent features)
 
-**Impact**: Primary portage-cd functionality and gatecheck workflow remain fully operational. Only static analysis features are affected.
+**Oct 2025 workaround (belay_main only):** switched to the "Official Image Parsing" approach (Option 5 below) — `COPY --from=semgrep/semgrep:latest /usr/bin/semgrep-core` — to unblock belay_main builds while main continued investigating the OCaml path.
+
+**Current resolution (April 2026):** main's Dockerfile now pins `SEMGREP_VERSION_COMMIT` to a known-good commit and the full OCaml 5.3.0 build works reliably. When belay_main was merged with main, the from-source path was re-adopted. Semgrep-core compilation and the code-scan pipeline are fully operational.
 
 ### Potential Solutions
 
@@ -125,13 +126,13 @@ RUN apk add --no-cache zstd libpsl-dev
 RUN make install-deps-for-semgrep-core
 ```
 
-#### Current Broken State (September 2025)
+#### Current Working State (April 2026)
 ```dockerfile
-ARG ALPINE_VERSION=3.20  
-FROM alpine:3.19 AS build-semgrep-core
-ARG OCAML_VERSION=4.14.0  # Reverted from 5.2.1
-ARG SEMGREP_VERSION=v1.104.0  # Reverted from v1.109.0
-# Same build sequence but opam repository has evolved
+ARG ALPINE_VERSION=3.23
+ARG OCAML_VERSION=5.3.0
+# v1.156.0 — commit pinned because tags are less stable than commits
+ARG SEMGREP_VERSION_COMMIT=ab584982f6ecdaaa7954a14e5350a70c060e097f
+# Uses buildx cache mounts for opam + apk to survive between CI runs
 ```
 
 ### Monitoring and Prevention
@@ -148,4 +149,4 @@ ARG SEMGREP_VERSION=v1.104.0  # Reverted from v1.109.0
 
 ---
 
-*This document should be updated whenever significant pipeline debugging occurs or when the semgrep build issue is resolved.*
+*Preserved as historical record. For current operational guidance see [troubleshooting.md](./troubleshooting.md).*

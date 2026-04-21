@@ -80,14 +80,15 @@ The Dockerfile supports several build arguments to customize the build:
 
 ```bash
 docker build \
-  --build-arg SEMGREP_VERSION=v1.109.0 \
-  --build-arg GATECHECK_VERSION=main \
-  --build-arg GRYPE_VERSION=v0.80.0 \
-  --build-arg SYFT_VERSION=v1.14.0 \
-  --build-arg GITLEAKS_VERSION=v8.21.2 \
-  --build-arg ORAS_VERSION=v1.2.1 \
+  --build-arg GRYPE_VERSION=v0.110.0 \
+  --build-arg SYFT_VERSION=v1.42.3 \
+  --build-arg GITLEAKS_VERSION=v8.30.1 \
+  --build-arg GATECHECK_VERSION=v0.9.3 \
+  --build-arg ORAS_VERSION=v1.3.1 \
   -t portage-custom .
 ```
+
+The `Dockerfile` is the source of truth for default versions. The current build pins each tool to both a tag (`*_VERSION`) **and** a specific commit SHA (`*_VERSION_COMMIT`) — override either or both as needed. Note that `SEMGREP_VERSION` is pinned only via `SEMGREP_VERSION_COMMIT` because semgrep's own tags move more than its commits.
 
 ### Troubleshooting Docker Builds
 
@@ -148,7 +149,7 @@ Note: `(none)` means unset, left blank
 | codescan.semgrepfilename       | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
 | codescan.semgreprules          | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
 | codescan.semgrepexperimental   | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL   | false                                | Enable the use of the semgrep experimental CLI                                     |
-| deploy.enabled                 | PORTAGE_DEPLOY_ENABLED                   | 1                                    | Enable/Disable the publishing to a registry pipeline                               |
+| deploy.enabled                 | PORTAGE_DEPLOY_ENABLED                   | 1                                    | Enable/Disable the deploy pipeline (gatecheck bundle validation + success webhooks) |
 | deploy.gatecheckconfigfilename | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | .gatecheck.yml                       | The filename for the gatecheck config                                              |
 | gatecheckbundlefilename        | PORTAGE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |
 | imagebuild.args                | PORTAGE_IMAGE_BUILD_ARGS                 | -                                    | Comma seperated list of build time variables                                       |
@@ -168,6 +169,7 @@ Note: `(none)` means unset, left blank
 | imagescan.grypeconfigfilename  | PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
 | imagescan.grypefilename        | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
 | imagescan.syftfilename         | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
+| imagetag                       | PORTAGE_IMAGE_TAG                        | my-app:latest                        | The full tag applied to the built container image (e.g. registry.example.com/org/app:latest) |
 
 The portage pipeline is broken into a number of stages.  Below are the stages and their purpose:
 

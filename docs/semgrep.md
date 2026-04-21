@@ -26,7 +26,7 @@ Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTM
 C# (NuGet) · Dart (Pub) · Go (Go modules, go mod) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
 
 ## Configuration
-Under the hood, Workflow engine runs Semgrep with certain flags as its base. Workflow engine then continues on to do further improvements on functionality as a security tool and user experience based on the output of on one of the two optional commands.
+Under the hood, Portage CD runs Semgrep with certain flags as its base. Portage CD then continues on to do further improvements on functionality as a security tool and user experience based on the output of on one of the two optional commands.
 
 Runs this over your git repository: 
 ```
@@ -130,7 +130,7 @@ Furthermore Semgrep when enabled via code-scan, `portage run code-scan -v` will 
 
 The contents of the `semgrep-sast-report.json` contains rules and snippets of code that have potential vulnerabilities as well as amended code that has been fixed with the tag `fix` in the rule.
 
-Workflow engine uses [Gatecheck](https://github.com/gatecheckdev/gatecheck) to 'audit' the semgrep logs once Semgrep has finished. It does so by scanning for vulnerabilities defined by [Open Worldwide Application Security Project](https://owasp.org/) IDs. portage reads STDERR, where other errors are gathered from `code-scan` tools, audits them via Gatecheck and outputs this audit to STDOUT. It also releases the logged output files into the `artifacts/` directory in your working directory.
+Portage CD uses [Gatecheck](https://github.com/easy-up/gatecheck) to 'audit' the semgrep logs once Semgrep has finished. It does so by scanning for vulnerabilities defined by [Open Worldwide Application Security Project](https://owasp.org/) IDs. portage reads STDERR, where other errors are gathered from `code-scan` tools, audits them via Gatecheck and outputs this audit to STDOUT. It also releases the logged output files into the `artifacts/` directory in your working directory.
 
 Ex.
 |            Check ID            |                           Owasp IDs                           |  Severity |  Impact |  link |

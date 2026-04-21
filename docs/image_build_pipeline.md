@@ -1,99 +1,115 @@
 # Image Build
 
+Run the image build pipeline:
+
+```
+portage run image-build [flags]
+```
+
+The image build pipeline is responsible for producing the container image that downstream stages (image-scan, image-publish) operate on.
+
 ## Command Parameters
+
+Config paths below use the YAML/JSON nested form. The flat (viper) key is the lowercase, dotted equivalent (e.g. `imageBuild.buildDir` ↔ `imagebuild.builddir`). All three — CLI flag, environment variable, and config file entry — reach the same setting, with CLI > env > file > default precedence.
+
+### Image Tag
+
+| CLI Flag | Environment Variable | Config Field        |
+|----------|----------------------|---------------------|
+| `--tag`  | `PORTAGE_IMAGE_TAG`  | `imageTag` (root)   |
+
+The full image tag to apply to the built container (e.g. `registry.example.com/org/app:latest`). Top-level config field — not nested under `imageBuild`.
 
 ### Build Directory
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--build-dir`        | `PORTAGE_BUILD_DIR`           | `image.buildDir`             |
+| CLI Flag      | Environment Variable      | Config Field            |
+|---------------|---------------------------|-------------------------|
+| `--build-dir` | `PORTAGE_IMAGE_BUILD_DIR` | `imageBuild.buildDir`   |
 
-The directory from which to build the container (typically, but not always, the directory where the Dockerfile is located). This parameter is optional, expects a string value, and defaults to the current working directory.
+The directory from which to build the container (typically where the Dockerfile lives). Optional. Defaults to the current working directory.
 
 ### Dockerfile
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--dockerfile`       | `PORTAGE_BUILD_DOCKERFILE`    | `image.buildDockerfile`      |
+| CLI Flag       | Environment Variable              | Config Field               |
+|----------------|-----------------------------------|----------------------------|
+| `--dockerfile` | `PORTAGE_IMAGE_BUILD_DOCKERFILE`  | `imageBuild.dockerfile`    |
+
+Path to the Dockerfile/Containerfile. Defaults to `Dockerfile`.
 
 ### Build Args
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--build-arg`        | `PORTAGE_BUILD_ARGS`          | `image.buildArgs`            |
+| CLI Flag      | Environment Variable       | Config Field         |
+|---------------|----------------------------|----------------------|
+| `--build-arg` | `PORTAGE_IMAGE_BUILD_ARGS` | `imageBuild.args`    |
 
-Defines [build arguments](https://docs.docker.com/build/guide/build-args/) that are passed to the actual container image build command. This parameter is optional, and expects a mapping of string keys to string values, the exact format of which depends on the medium by which it is specified.
+Defines [build arguments](https://docs.docker.com/build/guide/build-args/) passed to the container build. Optional.
 
-#### CLI Flag
+- **CLI:** pass `--build-arg key=value` repeatedly, once per arg.
+- **Environment variable:** `PORTAGE_IMAGE_BUILD_ARGS` must contain a JSON-formatted object, e.g. `{"KEY":"value"}`.
+- **Config file (YAML):** the value is a JSON-string, not a YAML object:
 
-The `--build-arg` flag can be specified multiple times to specify different args. The key and value for each arg should be specified as a string in the format `key=value`.
+  ```yaml
+  imageBuild:
+    args: |-
+      { "KEY": "value" }
+  ```
 
-#### Environment Variable
+- **Config file (JSON):** same idea — a string containing escaped JSON:
 
-The `PORTAGE_BUILD_ARGS` environment variable must contain all the build arguments in a JSON formatted object (i.e. `{"key":"value"}`).
+  ```json
+  {
+    "imageBuild": {
+      "args": "{ \"KEY\": \"value\" }"
+    }
+  }
+  ```
 
-#### Configuration File
-
-Similar to how build args are specified as an environment variable, build args in config files must be specified as a JSON formatted object. The following is an example YAML config file:
-
-```yaml
-image:
-  buildArgs: |-
-    { "key": "value" }
-```
-
-Note that when specifying build args via the configuration file, special care must be taken to ensure that the case of the key is preserved. In the above example the value of `buildArgs` is a string, not a YAML object. When using a JSON config file this would need to be specified as follows:
-
-```json
-{
-	"image": {
-		"buildArgs": "{ \"key\": \"value\" }"
-	}
-}
-```
-
-This is because the portage configuration file loader does not preserve the case of keys, and build args in Dockerfiles are case sensitive.
-
-### Tag
-
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--tag`              | `PORTAGE_BUILD_TAG`           | `image.buildTag`             |
+The string wrapping is required because portage's config loader lowercases all keys on deserialization, but Docker build args are case-sensitive. Passing the args as an opaque JSON string preserves casing.
 
 ### Platform
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--platform`         | `PORTAGE_BUILD_PLATFORM`      | `image.buildPlatform`        |
+| CLI Flag     | Environment Variable          | Config Field           |
+|--------------|-------------------------------|------------------------|
+| `--platform` | `PORTAGE_IMAGE_BUILD_PLATFORM`| `imageBuild.platform`  |
+
+Target platform for the build (e.g. `linux/amd64`, `linux/arm64`).
 
 ### Target
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--target`           | `PORTAGE_BUILD_TARGET`        | `image.buildTarget`          |
+| CLI Flag   | Environment Variable         | Config Field         |
+|------------|------------------------------|----------------------|
+| `--target` | `PORTAGE_IMAGE_BUILD_TARGET` | `imageBuild.target`  |
 
-For [multi-stage Dockerfiles](https://docs.docker.com/build/building/multi-stage/) this parameter specifies a named stage to build.
+For [multi-stage Dockerfiles](https://docs.docker.com/build/building/multi-stage/), names the stage to build.
 
 ### Cache To
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--cache-to`         | `PORTAGE_BUILD_CACHE_TO`      | `image.buildCacheTo`         |
+| CLI Flag     | Environment Variable            | Config Field          |
+|--------------|---------------------------------|-----------------------|
+| `--cache-to` | `PORTAGE_IMAGE_BUILD_CACHE_TO`  | `imageBuild.cacheTo`  |
+
+Where to export the build cache (e.g. `type=local,dest=path/to/dir`, `user/app:cache`).
 
 ### Cache From
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--cache-from`       | `PORTAGE_BUILD_CACHE_FROM`    | `image.buildCacheFrom`       |
+| CLI Flag       | Environment Variable              | Config Field            |
+|----------------|-----------------------------------|-------------------------|
+| `--cache-from` | `PORTAGE_IMAGE_BUILD_CACHE_FROM`  | `imageBuild.cacheFrom`  |
+
+Where to import existing build cache from.
 
 ### Squash Layers
 
-| CLI Flag             | Variable Name             | Config Field Name            |
-|----------------------|---------------------------|------------------------------|
-| `--squash-layers`    | `PORTAGE_BUILD_SQUASH_LAYERS` | `image.buildSquashLayers`    |
+| CLI Flag          | Environment Variable                | Config Field               |
+|-------------------|-------------------------------------|----------------------------|
+| `--squash-layers` | `PORTAGE_IMAGE_BUILD_SQUASH_LAYERS` | `imageBuild.squashLayers`  |
+
+Squash image layers. Only supported with the Podman CLI.
 
 ### Use Buildx
 
-| CLI Flag             | Variable Name              | Config Field Name            |
-|----------------------|----------------------------|------------------------------|
-| `--use-buildx`       | `PORTAGE_BUILD_USE_BUILDX`	| `image.buildUseBuildx`       |
+| CLI Flag       | Environment Variable             | Config Field             |
+|----------------|----------------------------------|--------------------------|
+| `--use-buildx` | `PORTAGE_IMAGE_BUILD_USE_BUILDX` | `imageBuild.useBuildx`   |
+
+Use Docker Buildx for the build. Only supported with the Docker CLI.
