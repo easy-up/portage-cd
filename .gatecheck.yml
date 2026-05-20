@@ -50,13 +50,22 @@ grype:
             - id: CVE-2026-45022
             # hashicorp/go-getter — transitive dep in bundled tooling. Fix in 1.8.6; pending tool bump.
             - id: CVE-2026-4660
-    # Critical kept as a hard gate at 0 — any unaccepted critical must fail the
-    # build and be reviewed. The high cap is intentionally dropped (main has no
-    # severity cap); cveRiskAcceptance above is the gate for high-severity CVEs.
     severityLimit:
+        # Critical is a hard gate at 0 — any unaccepted critical must fail the
+        # build and be reviewed. The single current critical (CVE-2026-33186)
+        # is in cveRiskAcceptance above.
         critical:
             enabled: true
             limit: 0
+        # High is explicitly NOT gated. gatecheck defaults an unconfigured
+        # severity to limit 0, so this must be spelled out. Every high in the
+        # portage image is an inherited transitive-dep or OS-package CVE — the
+        # set churns daily as grype's DB updates and differs per architecture,
+        # so a hard high gate would break belay_main's self-build on a routine
+        # basis for findings outside portage's own code. The cveRiskAcceptance
+        # list above is retained as a documented catalogue of known highs.
+        high:
+            enabled: false
 semgrep:
     impactRiskAcceptance:
         enabled: true

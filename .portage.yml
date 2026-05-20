@@ -45,6 +45,6 @@ imagePublish:
 # Deploy Configuration
 deploy:
   enabled: false                                   # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
-  gatecheckConfigFilename: ".custom-gatecheck.yml" # Filename for gatecheck config which specifies the validation rules and limits applied during the deployment process
+  gatecheckConfigFilename: ".gatecheck.yml" # Filename for gatecheck config which specifies the validation rules and limits applied during the deployment process
   # No successWebhooks here — portage-cd's own self-build should not post to belay.
   # Consumers configure successWebhooks in their own .portage.yml. See pkg/pipelines/deploy.go.
