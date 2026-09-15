@@ -25,6 +25,12 @@ func GitLeaksDetect(options ...OptionFunc) error {
 		"--exit-code",
 		"0",
 		"--verbose",
+		// Redact matched secrets in the report/logs. The gitleaks report is bundled to
+		// Belay and uploaded as a CI artifact, so it must never carry the plaintext
+		// secret — findings still include rule/file/line/commit, enough to locate and
+		// rotate. Bare --redact = 100% (works across gitleaks v8; v8.19+ treats it as
+		// the default percentage).
+		"--redact",
 		"--source",
 		o.gitleaks.targetDirectory,
 		"--report-path",
