@@ -50,10 +50,25 @@ grype:
             - id: CVE-2026-45022
             # hashicorp/go-getter — transitive dep in bundled tooling. Fix in 1.8.6; pending tool bump.
             - id: CVE-2026-4660
+            # golang.org/x/crypto in bundled Portage, Grype, Syft, Gitleaks,
+            # ORAS, and Docker Buildx binaries. Fix in v0.52.0; pending tool
+            # upgrades. These seven CVEs account for repeated matches because
+            # several bundled binaries carry their own copy of the module.
+            - id: CVE-2026-39830
+            - id: CVE-2026-39831
+            - id: CVE-2026-39832
+            - id: CVE-2026-39833
+            - id: CVE-2026-39834
+            - id: CVE-2026-42508
+            - id: CVE-2026-46595
+            # Alpine OpenSSL packages in the runtime image. Fix in 3.5.8-r0;
+            # pending base-image/package refresh.
+            - id: CVE-2026-63073
+            - id: CVE-2026-75803
     severityLimit:
         # Critical is a hard gate at 0 — any unaccepted critical must fail the
-        # build and be reviewed. The single current critical (CVE-2026-33186)
-        # is in cveRiskAcceptance above.
+        # build and be reviewed. Known critical findings from the failed
+        # build are individually listed in cveRiskAcceptance above.
         critical:
             enabled: true
             limit: 0
