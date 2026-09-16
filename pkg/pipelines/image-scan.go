@@ -361,6 +361,7 @@ func (p *ImageScan) gatecheckBundleJob(task *AsyncTask, syftTask *AsyncTask, gry
 		shell.WithWaitFunc(grypeTask.Wait),
 		shell.WithStdout(p.runtime.postSummaryBuffer),
 		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithBundleBuildContext(p.config.BuildGroupID, p.config.ImageName, p.config.BuildImageNames),
 	}
 
 	syftOpts := append(opts, shell.WithBundleFile(p.runtime.bundleFilename, p.runtime.syftFilename), shell.WithBundleTags("type:syft"), shell.WithWaitFunc(syftTask.Wait))

@@ -123,7 +123,7 @@ func (p *Deploy) Run() error {
 		}
 	}
 
-	err = AddBundleFile(p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr)
+	err = AddBundleFile(p.config, p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr)
 	if err != nil {
 		return mkDeploymentError(err)
 	}

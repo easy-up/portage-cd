@@ -44,7 +44,7 @@ ARG SYFT_VERSION_COMMIT=860126c650c2d05b63b83a3895e41268162315a3
 ARG GITLEAKS_VERSION=v8.30.1
 ARG GITLEAKS_VERSION_COMMIT=83d9cd684c87d95d656c1458ef04895a7f1cbd8e
 ARG GATECHECK_VERSION=belay_main
-ARG GATECHECK_VERSION_COMMIT=5e83c49183c81d5797106860ea49ffeb852f9f19
+ARG GATECHECK_VERSION_COMMIT=2eecd83b782c106a41726aaecaa0a4d3464f87fb
 ARG ORAS_VERSION=v1.3.1
 ARG ORAS_VERSION_COMMIT=e3f584fabe332396414a44b7a83d029cfa5fc201
 
@@ -72,7 +72,8 @@ RUN cd /app/gitleaks && \
 
 RUN cd /app/gatecheck && \
     git checkout ${GATECHECK_VERSION_COMMIT} && \
-    go build -ldflags="-s -w -X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$(git log -1 --pretty=%B | tr \' _)'" -o /usr/local/bin ./cmd/gatecheck
+    GIT_DESCRIPTION=$(git log -1 --pretty=%s | LC_ALL=C sed 's/[^[:alnum:] .,_-]/_/g') && \
+    go build -ldflags="-s -w -X 'main.cliVersion=$(git describe --tags)' -X 'main.gitCommit=$(git rev-parse HEAD)' -X 'main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=${GIT_DESCRIPTION}'" -o /usr/local/bin ./cmd/gatecheck
 
 RUN cd /app/oras && \
     git checkout ${ORAS_VERSION_COMMIT} && \

@@ -80,6 +80,9 @@ type Options struct {
 		targetFile     string
 		label          string
 		tags           []string
+		buildGroupID   string
+		imageName      string
+		buildImages    []string
 	}
 
 	semgrep struct {
@@ -244,6 +247,15 @@ func WithBundleFile(bundleFilename string, targetFilename string) OptionFunc {
 func WithBundleTags(tags ...string) OptionFunc {
 	return func(o *Options) {
 		o.gatecheck.tags = tags
+	}
+}
+
+// WithBundleBuildContext sets metadata used to correlate image bundles in one logical build.
+func WithBundleBuildContext(buildGroupID string, imageName string, buildImages []string) OptionFunc {
+	return func(o *Options) {
+		o.gatecheck.buildGroupID = buildGroupID
+		o.gatecheck.imageName = imageName
+		o.gatecheck.buildImages = buildImages
 	}
 }
 

@@ -237,6 +237,7 @@ func (p *CodeScan) gatecheckBundleJob(task *AsyncTask, semgrep *AsyncTask, gitle
 		shell.WithLogger(task.Logger),
 		shell.WithStdout(p.runtime.postSummaryBuffer),
 		shell.WithErrorOnly(task.StderrPipeWriter),
+		shell.WithBundleBuildContext(p.config.BuildGroupID, p.config.ImageName, p.config.BuildImageNames),
 	}
 
 	// Add semgrep report file to the gatecheck bundle

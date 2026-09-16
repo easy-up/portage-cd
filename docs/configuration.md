@@ -26,6 +26,33 @@ precedence when merging configuration options:
    them into the existing configuration.
 4. **Default Values**: Predefined in the code.
 
+### Multi-image build context
+
+Portage accepts three optional top-level values for identifying image bundles that belong to one logical build:
+
+- `buildGroupId` is the identifier shared by every image pipeline in the build, commonly the CI pipeline or workflow-run ID.
+- `imageName` is the stable registry path of the image represented by this Portage invocation, without a tag or digest.
+- `buildImageNames` is the complete set of image names belonging to the logical build. Every sibling image pipeline must receive the same set. It is not a list of images processed so far.
+
+For example, the API invocation in a two-image build can use:
+
+```yaml
+imageTag: registry.example.com/team/api:latest
+imageName: registry.example.com/team/api
+buildGroupId: pipeline-123
+buildImageNames:
+  - registry.example.com/team/api
+  - registry.example.com/team/worker
+```
+
+The worker invocation uses its own `imageTag` and `imageName`, while retaining the same `buildGroupId` and `buildImageNames`. Portage passes these values unchanged to Gatecheck; it does not infer group membership from image tags.
+
+When using environment variables, provide `PORTAGE_BUILD_IMAGE_NAMES` as a comma-separated list:
+
+```shell
+export PORTAGE_BUILD_IMAGE_NAMES="registry.example.com/team/api,registry.example.com/team/worker"
+```
+
 ### Using Environment Variables
 
 Environment variables are a convenient way to configure the application in environments where file access might be
@@ -132,4 +159,3 @@ $ cat config.json.tmpl | ./portage config render  | ./portage config convert -i 
 buildDir = '.'
 ...
 ```
-

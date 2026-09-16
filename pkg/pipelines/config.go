@@ -19,6 +19,9 @@ import (
 type Config struct {
 	Version                 string             `mapstructure:"version"`
 	ImageTag                string             `mapstructure:"imageTag"`
+	ImageName               string             `mapstructure:"imageName"`
+	BuildGroupID            string             `mapstructure:"buildGroupId"`
+	BuildImageNames         []string           `mapstructure:"buildImageNames"`
 	ArtifactDir             string             `mapstructure:"artifactDir"`
 	GatecheckBundleFilename string             `mapstructure:"gatecheckBundleFilename"`
 	ImageBuild              configImageBuild   `mapstructure:"imageBuild"`
@@ -104,6 +107,30 @@ var metaConfig = []metaConfigField{
 		ActionType:      "String",
 		Default:         nil,
 		Description:     "The full image tag for the target container image",
+	},
+	{
+		Key:             "imagename",
+		Env:             "PORTAGE_IMAGE_NAME",
+		ActionInputName: "image_name",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The stable registry image path without a tag or digest",
+	},
+	{
+		Key:             "buildgroupid",
+		Env:             "PORTAGE_BUILD_GROUP_ID",
+		ActionInputName: "build_group_id",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "The identifier shared by all images in the logical build",
+	},
+	{
+		Key:             "buildimagenames",
+		Env:             "PORTAGE_BUILD_IMAGE_NAMES",
+		ActionInputName: "build_image_names",
+		ActionType:      "List",
+		Default:         nil,
+		Description:     "The complete set of image names belonging to the logical build",
 	},
 
 	{
@@ -196,12 +223,12 @@ var metaConfig = []metaConfigField{
 		Description:     "Comma seperated list of build time variables",
 	},
 	{
-	  Key:             "imagebuild.usebuildx",
-	  Env:             "PORTAGE_IMAGE_BUILD_USE_BUILDX",
-	  ActionInputName: "use_buildx",
-	  ActionType:      "Bool",
-	  Default:         nil,
-	  Description:     "Use Docker Buildx for building images - Only Supported with Docker CLI",
+		Key:             "imagebuild.usebuildx",
+		Env:             "PORTAGE_IMAGE_BUILD_USE_BUILDX",
+		ActionInputName: "use_buildx",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Use Docker Buildx for building images - Only Supported with Docker CLI",
 	},
 	{
 		Key:             "imagescan.enabled",
@@ -470,6 +497,9 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 	supportedKeys := []string{
 		"config",
 		"imagetag",
+		"imagename",
+		"buildgroupid",
+		"buildimagenames",
 		"imagebuild.enabled",
 		"imagebuild.builddir",
 		"imagebuild.dockerfile",

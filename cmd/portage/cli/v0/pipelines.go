@@ -111,11 +111,17 @@ func newRunCommand() *cobra.Command {
 	cmd.PersistentFlags().StringP("cli-interface", "i", "docker", "[docker|podman] CLI interface to use for image building")
 	cmd.PersistentFlags().String("artifact-dir", "", "the target output directory for security report artifacts")
 	cmd.PersistentFlags().String("tag", "", "the target image tag (ex. alpine:latest)")
+	cmd.PersistentFlags().String("image-name", "", "the stable registry image path without a tag or digest")
+	cmd.PersistentFlags().String("build-group-id", "", "the identifier shared by all images in the logical build")
+	cmd.PersistentFlags().StringSlice("build-image-name", nil, "an image name belonging to the logical build; may be repeated")
 	// cmd.PersistentFlags().String("template", "t", "", "portage config template that will be auto rendered")
 
 	// necessary for the persistent flags
 	_ = viper.BindPFlag("artifactdir", cmd.PersistentFlags().Lookup("artifact-dir"))
 	_ = viper.BindPFlag("imagetag", cmd.PersistentFlags().Lookup("tag"))
+	_ = viper.BindPFlag("imagename", cmd.PersistentFlags().Lookup("image-name"))
+	_ = viper.BindPFlag("buildgroupid", cmd.PersistentFlags().Lookup("build-group-id"))
+	_ = viper.BindPFlag("buildimagenames", cmd.PersistentFlags().Lookup("build-image-name"))
 	_ = viper.BindPFlag("config", cmd.PersistentFlags().Lookup("config"))
 
 	// Flag marks

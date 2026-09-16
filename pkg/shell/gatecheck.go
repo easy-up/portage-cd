@@ -67,6 +67,7 @@ func GatecheckBundleAdd(options ...OptionFunc) error {
 			args = append(args, "--tag", tag)
 		}
 	}
+	args = appendGatecheckBuildContextArgs(args, o)
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		args = append(args, "-v")
 	}
@@ -87,6 +88,7 @@ func GatecheckBundleCreate(options ...OptionFunc) error {
 			args = append(args, "--tag", tag)
 		}
 	}
+	args = appendGatecheckBuildContextArgs(args, o)
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		slog.Debug("debug logging enabled, adding verbose flag to gatecheck command")
 		args = append(args, "-v")
@@ -98,6 +100,19 @@ func GatecheckBundleCreate(options ...OptionFunc) error {
 		"args", args)
 	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
+}
+
+func appendGatecheckBuildContextArgs(args []string, o *Options) []string {
+	if o.gatecheck.buildGroupID != "" {
+		args = append(args, "--build-group-id", o.gatecheck.buildGroupID)
+	}
+	if o.gatecheck.imageName != "" {
+		args = append(args, "--image-name", o.gatecheck.imageName)
+	}
+	for _, imageName := range o.gatecheck.buildImages {
+		args = append(args, "--build-image-name", imageName)
+	}
+	return args
 }
 
 // GatecheckValidate validates artifacts in a bundle

@@ -149,6 +149,8 @@ Note: `(none)` means unset, left blank
 | codescan.semgrepfilename       | PORTAGE_CODE_SCAN_SEMGREP_FILENAME       | semgrep-sast-report.json             | The filename for the semgrep SAST report - must contain 'semgrep'                  |
 | codescan.semgreprules          | PORTAGE_CODE_SCAN_SEMGREP_RULES          | p/default                            | Semgrep ruleset manual override                                                    |
 | codescan.semgrepexperimental   | PORTAGE_CODE_SCAN_SEMGREP_EXPERIMENTAL   | false                                | Enable the use of the semgrep experimental CLI                                     |
+| buildgroupid                   | PORTAGE_BUILD_GROUP_ID                   | -                                    | Identifier shared by every image in one logical build                              |
+| buildimagenames                | PORTAGE_BUILD_IMAGE_NAMES                | -                                    | Complete set of image names belonging to the logical build                         |
 | deploy.enabled                 | PORTAGE_DEPLOY_ENABLED                   | 1                                    | Enable/Disable the deploy pipeline (gatecheck bundle validation + success webhooks) |
 | deploy.gatecheckconfigfilename | PORTAGE_DEPLOY_GATECHECK_CONFIG_FILENAME | .gatecheck.yml                       | The filename for the gatecheck config                                              |
 | gatecheckbundlefilename        | PORTAGE_GATECHECK_BUNDLE_FILENAME        | artifacts/gatecheck-bundle.tar.gz    | The filename for the gatecheck bundle, a validatable archive of security artifacts |
@@ -169,6 +171,7 @@ Note: `(none)` means unset, left blank
 | imagescan.grypeconfigfilename  | PORTAGE_IMAGE_SCAN_GRYPE_CONFIG_FILENAME | -                                    | The config filename for the grype vulnerability report                             |
 | imagescan.grypefilename        | PORTAGE_IMAGE_SCAN_GRYPE_FILENAME        | grype-vulnerability-report-full.json | The filename for the grype vulnerability report - must contain 'grype'             |
 | imagescan.syftfilename         | PORTAGE_IMAGE_SCAN_SYFT_FILENAME         | syft-sbom-report.json                | The filename for the syft SBOM report - must contain 'syft'                        |
+| imagename                      | PORTAGE_IMAGE_NAME                       | -                                    | Stable registry image path without a tag or digest                                 |
 | imagetag                       | PORTAGE_IMAGE_TAG                        | my-app:latest                        | The full tag applied to the built container image (e.g. registry.example.com/org/app:latest) |
 
 The portage pipeline is broken into a number of stages.  Below are the stages and their purpose:

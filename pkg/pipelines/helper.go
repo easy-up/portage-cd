@@ -71,10 +71,10 @@ func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) e
 		slog.Error("error checking bundle file", "bundle", bundleFilename, "error", err)
 	}
 
-	return AddBundleFile(dryRunEnabled, bundleFilename, tempConfigFilename, "portage-config", stderr)
+	return AddBundleFile(config, dryRunEnabled, bundleFilename, tempConfigFilename, "portage-config", stderr)
 }
 
-func AddBundleFile(dryRunEnabled bool, bundleFilename string, filename string, artifactType string, stderr io.Writer) error {
+func AddBundleFile(config *Config, dryRunEnabled bool, bundleFilename string, filename string, artifactType string, stderr io.Writer) error {
 	slog.Debug("attempting to add file to bundle",
 		"bundle", bundleFilename,
 		"file", filename,
@@ -84,6 +84,7 @@ func AddBundleFile(dryRunEnabled bool, bundleFilename string, filename string, a
 		shell.WithDryRun(dryRunEnabled),
 		shell.WithBundleFile(bundleFilename, filename),
 		shell.WithBundleTags("type:" + artifactType),
+		shell.WithBundleBuildContext(config.BuildGroupID, config.ImageName, config.BuildImageNames),
 	}
 
 	// If we're in debug mode (verbose), show all output
