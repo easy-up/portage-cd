@@ -65,6 +65,9 @@ grype:
             # pending base-image/package refresh.
             - id: CVE-2026-63073
             - id: CVE-2026-75803
+            # Alpine glib package pulled into the Podman image. No fix version
+            # is currently available; pending Alpine package refresh.
+            - id: CVE-2026-58016
     severityLimit:
         # Critical is a hard gate at 0 — any unaccepted critical must fail the
         # build and be reviewed. Known critical findings from the failed
