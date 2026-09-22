@@ -139,6 +139,8 @@ The recommended way to configure portage is to create a `.portage.yml` file in t
 portage config init .portage.yml
 ```
 
+For parallel multi-image pipelines, see the [CI-agnostic logical-build contract and GitHub/GitLab recipes](docs/configuration.md#multi-image-build-context).
+
 Note: `(none)` means unset, left blank
 
 | Config Key                     | Environment Variable                     | Default Value                        | Description                                                                        |

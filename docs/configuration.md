@@ -28,30 +28,96 @@ precedence when merging configuration options:
 
 ### Multi-image build context
 
-Portage accepts three optional top-level values for identifying image bundles that belong to one logical build:
+The CI orchestrator owns logical-build identity. It generates one opaque ID once per logical build and gives every image job all three values below:
 
-- `buildGroupId` is the identifier shared by every image pipeline in the build, commonly the CI pipeline or workflow-run ID.
-- `imageName` is the stable registry path of the image represented by this Portage invocation, without a tag or digest.
-- `buildImageNames` is the complete set of image names belonging to the logical build. Every sibling image pipeline must receive the same set. It is not a list of images processed so far.
+- `buildGroupId` / `PORTAGE_BUILD_GROUP_ID`: the same opaque ID for every image in the logical build.
+- `imageName` / `PORTAGE_IMAGE_NAME`: the stable registry path for the image handled by the current job, without a tag or digest.
+- `buildImageNames` / `PORTAGE_BUILD_IMAGE_NAMES`: the complete image-name set for the logical build, not the images completed so far. Every job receives the same set.
 
-For example, the API invocation in a two-image build can use:
+Portage transports this context to Gatecheck unchanged. It does not generate an ID, parse CI metadata, infer membership from image tags, or add missing image names. Gatecheck serializes the context without inference, and Belay consumes it to correlate the bundles. Treat `buildGroupId` as opaque: uniqueness and retry semantics belong to the CI configuration.
 
-```yaml
-imageTag: registry.example.com/team/api:latest
-imageName: registry.example.com/team/api
-buildGroupId: pipeline-123
-buildImageNames:
-  - registry.example.com/team/api
-  - registry.example.com/team/worker
-```
+Grouped mode requires all three values together. Supply `buildGroupId`, `imageName`, and `buildImageNames` for every image job, or omit all three for legacy ungrouped behavior. Partial grouping context is invalid and must not be used. Legacy bundles cannot participate in grouped multi-image replacement.
 
-The worker invocation uses its own `imageTag` and `imageName`, while retaining the same `buildGroupId` and `buildImageNames`. Portage passes these values unchanged to Gatecheck; it does not infer group membership from image tags.
+#### Portable environment contract
 
-When using environment variables, provide `PORTAGE_BUILD_IMAGE_NAMES` as a comma-separated list:
+For a four-image build, each parallel job receives the same group ID and comma-delimited list. Only `PORTAGE_IMAGE_NAME` and the image-specific tag change:
 
 ```shell
-export PORTAGE_BUILD_IMAGE_NAMES="registry.example.com/team/api,registry.example.com/team/worker"
+export PORTAGE_BUILD_GROUP_ID=ci:project-42:build-781
+export PORTAGE_BUILD_IMAGE_NAMES=registry.example.com/team/api,registry.example.com/team/web,registry.example.com/team/worker,registry.example.com/team/migrations
+
+# API job; other jobs select their own name from the same complete set.
+export PORTAGE_IMAGE_NAME=registry.example.com/team/api
+export PORTAGE_IMAGE_TAG=registry.example.com/team/api:${GIT_COMMIT_SHA}
+portage run all
 ```
+
+`PORTAGE_BUILD_IMAGE_NAMES` is a plain comma-delimited list without spaces or quoting. Portage splits the value literally on commas; it does not trim whitespace or implement quoted-field syntax. Image names must not contain commas.
+
+```text
+Safe:   registry.example.com/team/api,registry.example.com/team/web
+Unsafe: registry.example.com/team/api, registry.example.com/team/web
+Unsafe: "registry.example.com/team/api,registry.example.com/team/web"
+```
+
+In the first unsafe value, the second image name begins with a space. In the second, quote characters are part of the parsed image names when passed literally. Avoid both forms.
+
+The equivalent YAML config for one of those jobs is:
+
+```yaml
+buildGroupId: ci:project-42:build-781
+imageName: registry.example.com/team/api
+buildImageNames:
+  - registry.example.com/team/api
+  - registry.example.com/team/web
+  - registry.example.com/team/worker
+  - registry.example.com/team/migrations
+imageTag: registry.example.com/team/api:abc1234
+```
+
+#### GitHub Actions identity
+
+Use the repository ID, workflow run ID, and run attempt:
+
+```yaml
+env:
+  PORTAGE_BUILD_GROUP_ID: github:${{ github.repository_id }}:${{ github.run_id }}:${{ github.run_attempt }}
+  PORTAGE_BUILD_IMAGE_NAMES: registry.example.com/team/api,registry.example.com/team/web,registry.example.com/team/worker,registry.example.com/team/migrations
+```
+
+A full workflow rerun increments `github.run_attempt`, creating a new grouped attempt. Do not rerun only failed jobs when the intent is to replace a grouped build: successful sibling jobs would not publish bundles under the new attempt. Start a full rerun so all four bundles share the new ID.
+
+#### GitLab CI/CD identity
+
+Use the project and pipeline IDs:
+
+```yaml
+variables:
+  PORTAGE_BUILD_GROUP_ID: gitlab:${CI_PROJECT_ID}:${CI_PIPELINE_ID}
+  PORTAGE_BUILD_IMAGE_NAMES: registry.example.com/team/api,registry.example.com/team/web,registry.example.com/team/worker,registry.example.com/team/migrations
+
+portage-images:
+  parallel:
+    matrix:
+      - PORTAGE_IMAGE_NAME:
+          - registry.example.com/team/api
+          - registry.example.com/team/web
+          - registry.example.com/team/worker
+          - registry.example.com/team/migrations
+  script:
+    - export PORTAGE_IMAGE_TAG="${PORTAGE_IMAGE_NAME}:${CI_COMMIT_SHA}"
+    - portage run all
+```
+
+All jobs in one pipeline share `CI_PIPELINE_ID`, including parallel or matrix jobs. Retrying an individual job keeps the same pipeline ID and therefore the same logical group. With Belay's current duplicate-artifact semantics, do not use an individual GitLab job retry to create a grouped replacement. Start a new full pipeline so every image is republished under a new `CI_PIPELINE_ID`.
+
+GitLab documents the [predefined CI/CD variables](https://docs.gitlab.com/ci/variables/predefined_variables/) and the behavior of [retrying jobs](https://docs.gitlab.com/ci/jobs/#retry-jobs).
+
+For parent/child pipelines, do not assume the child pipeline's `CI_PIPELINE_ID` is the root identity. Construct the group ID in the root pipeline and pass it explicitly to every child pipeline so all image jobs retain one shared value. GitLab describes variable forwarding in [downstream pipelines](https://docs.gitlab.com/ci/pipelines/downstream_pipelines/).
+
+#### Other CI systems
+
+Use a provider-qualified project identity plus the provider's logical pipeline/run ID, for example `jenkins:payments:build-781` or `circleci:project-42:workflow-uuid`. The exact format is yours; it only needs to be opaque, stable across all parallel image jobs, and new for a new full grouped attempt. Do not use a per-job ID, timestamp generated independently in each job, image tag, commit SHA alone, or mutable branch name.
 
 ### Using Environment Variables
 
