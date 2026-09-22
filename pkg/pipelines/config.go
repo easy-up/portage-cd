@@ -417,15 +417,6 @@ var defaults = map[string]defaultValues{
 	"deploy.gatecheckconfigfilename": {value: "", configPath: "Deploy.GatecheckConfigFilename"},
 }
 
-// Update metaConfig to use the shared defaults
-func init() {
-	for idx, field := range metaConfig {
-		if defaultVal, exists := defaults[field.Key]; exists {
-			metaConfig[idx].Default = defaultVal.value
-		}
-	}
-}
-
 // Add this new function
 func NewDefaultConfig() *Config {
 	config := &Config{}
@@ -545,8 +536,8 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 func BindViper(v *viper.Viper) {
 	for _, field := range metaConfig {
 		v.MustBindEnv(field.Key, field.Env)
-		if field.Default != nil {
-			v.SetDefault(field.Key, field.Default)
+		if defaultVal, exists := defaults[field.Key]; exists {
+			v.SetDefault(field.Key, defaultVal.value)
 		}
 	}
 }
@@ -663,11 +654,15 @@ func defaultValueToString(v any, valueIfNil string) string {
 func paddedMetaConfigData() [][]string {
 	data := [][]string{{"Config Key", "Environment Variable", "Default Value", "Description"}}
 	for _, field := range metaConfig {
+		defaultValue := any(nil)
+		if runtimeDefault, exists := defaults[field.Key]; exists {
+			defaultValue = runtimeDefault.value
+		}
 
 		newRow := []string{
 			field.Key,
 			field.Env,
-			defaultValueToString(field.Default, "-"),
+			defaultValueToString(defaultValue, "-"),
 			field.Description,
 		}
 
