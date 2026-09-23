@@ -43,8 +43,9 @@ ARG SYFT_VERSION=v1.42.3
 ARG SYFT_VERSION_COMMIT=860126c650c2d05b63b83a3895e41268162315a3
 ARG GITLEAKS_VERSION=v8.30.1
 ARG GITLEAKS_VERSION_COMMIT=83d9cd684c87d95d656c1458ef04895a7f1cbd8e
+# Source branch GATECHECK_VERSION_COMMIT is taken from (documentation; the fetch below pins by commit).
 ARG GATECHECK_VERSION=belay_main
-ARG GATECHECK_VERSION_COMMIT=2eecd83b782c106a41726aaecaa0a4d3464f87fb
+ARG GATECHECK_VERSION_COMMIT=ffb655e5122f4410687b11dfe5069c2ed79c82dd
 ARG ORAS_VERSION=v1.3.1
 ARG ORAS_VERSION_COMMIT=e3f584fabe332396414a44b7a83d029cfa5fc201
 
@@ -55,7 +56,16 @@ WORKDIR /app
 RUN git clone --branch ${GRYPE_VERSION} --depth=1 --single-branch https://github.com/anchore/grype /app/grype
 RUN git clone --branch ${SYFT_VERSION} --depth=1 --single-branch https://github.com/anchore/syft /app/syft
 RUN git clone --branch ${GITLEAKS_VERSION} --depth=1 --single-branch https://github.com/zricethezav/gitleaks /app/gitleaks
-RUN git clone --branch ${GATECHECK_VERSION} --depth=1 --single-branch https://github.com/easy-up/gatecheck /app/gatecheck
+# Gatecheck is pinned to a COMMIT on a moving branch, so fetch that commit directly rather than
+# shallow-cloning the branch. A `--depth=1 --single-branch` clone contains only the branch tip, so
+# `git checkout ${GATECHECK_VERSION_COMMIT}` failed with exit 128 the moment belay_main advanced
+# past the pin — which silently stopped publishing the image. Fetching the commit keeps the shallow
+# clone's speed while making the pin authoritative and independent of branch movement.
+# (grype/syft/gitleaks/oras clone by TAG, which is immutable, so they are unaffected.)
+RUN git init /app/gatecheck && \
+    cd /app/gatecheck && \
+    git remote add origin https://github.com/easy-up/gatecheck && \
+    git fetch --depth=1 origin ${GATECHECK_VERSION_COMMIT}
 RUN git clone --branch ${ORAS_VERSION} --depth=1 --single-branch https://github.com/oras-project/oras /app/oras
 
 RUN cd /app/grype && \

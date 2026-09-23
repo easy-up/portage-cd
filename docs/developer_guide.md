@@ -207,10 +207,47 @@ To create a new release of portage-cd and publish a new container image:
 
 ### Release Dependencies
 
-Portage-cd includes gatecheck as a build-time dependency:
-- Gatecheck is cloned from the `belay_main` branch during container build
-- Any changes pushed to gatecheck's `belay_main` branch will be included in the next portage-cd release
-- No separate gatecheck release is required
+Portage-cd includes gatecheck as a build-time dependency, **pinned to an exact commit** in the
+`Dockerfile`:
+
+```dockerfile
+ARG GATECHECK_VERSION=belay_main            # source branch (documentation only)
+ARG GATECHECK_VERSION_COMMIT=<40-char sha>  # what is actually built
+```
+
+- The build fetches that **commit**, not the branch tip. Pushing to gatecheck's `belay_main`
+  does **not** reach a portage-cd image on its own.
+- To pick up gatecheck changes you must **bump `GATECHECK_VERSION_COMMIT`** and commit that to
+  portage-cd. The `Dockerfile` is in the delivery workflow's path filter, so that commit is what
+  triggers the rebuild.
+- Pinning is deliberate: image contents must be reproducible from a portage-cd commit. Tracking a
+  moving branch would change what ships without any corresponding change here.
+
+Unlike grype/syft/gitleaks/oras, which are cloned by immutable **tag**, gatecheck is pinned by
+commit on a moving branch. The fetch is by commit precisely so the pin stays valid when that branch
+advances — an earlier `git clone --depth=1 --single-branch` of the branch contained only the tip, so
+`git checkout <pin>` failed with exit 128 as soon as `belay_main` moved ahead of the pin. That broke
+four of five consecutive image builds in Sept 2026, and because a failed publish is silent, the
+`belay-main-latest` tag simply stopped advancing without anyone noticing.
+
+### Image Publishing Chain
+
+Two images are published, from two repositories, and **only the first is automatic**:
+
+| Image | Built by | Triggered by |
+|---|---|---|
+| `ghcr.io/easy-up/portage:belay-main-latest` | portage-cd `delivery.yaml` | push to `belay_main` touching `Dockerfile`, `pkg/**`, `cmd/**`, `go.*` |
+| `ghcr.io/easy-up/portage-action:belay-main-latest` | portage-cd-actions `delivery.yml` | push touching **its own** `Dockerfile`/`entrypoint.sh`/`PORTAGE_VERSION`, `workflow_dispatch`, or a `portage-updated` repository dispatch |
+
+The action image is built `FROM` the portage image, but **nothing notifies it when portage
+publishes**. After shipping a portage change that must reach GitHub Actions users, run the
+portage-cd-actions delivery workflow (`workflow_dispatch`) or the action image will keep wrapping an
+older Portage binary. Verify what actually shipped with:
+
+```shell
+docker run --rm --entrypoint sh ghcr.io/easy-up/portage-action:belay-main-latest \
+  -c 'portage version; portage config generate-table | grep -i buildgroupid'
+```
 
 ### Branch Strategy
 

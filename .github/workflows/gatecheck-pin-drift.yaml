@@ -1,0 +1,137 @@
+# Gatecheck is pinned to an exact commit in the Dockerfile (see docs/developer_guide.md ->
+# Release Dependencies). Pinning is deliberate — image contents must be reproducible from a
+# portage-cd commit — but it means gatecheck changes do NOT reach an image until someone bumps
+# GATECHECK_VERSION_COMMIT here.
+#
+# Previously that drift was invisible: gatecheck's belay_main would advance, the pin would sit
+# still, and nobody noticed until an image was found to be months stale. This job makes the drift
+# visible without giving up pinning.
+#
+# On drift it FAILS the run, deliberately. With a single maintainer, a tracking issue is just a
+# slower silence — a failed run routes through GitHub's Actions failure notification, the same
+# channel as a broken build, so there is one place to watch rather than three. The issue is still
+# filed/updated because it carries the fix steps and outlives a skimmed email, but the failure is
+# what makes this arrive.
+name: Gatecheck pin drift check
+
+on:
+  schedule:
+    # Mondays 15:00 UTC (05:00 HST). Gatecheck moves rarely; weekly is enough to catch drift
+    # long before it matters, without generating routine noise.
+    - cron: '0 15 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Compare pinned gatecheck commit against its source branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pin from the Dockerfile
+        id: pin
+        run: |
+          set -euo pipefail
+          PIN=$(sed -n 's/^ARG GATECHECK_VERSION_COMMIT=\([0-9a-f]\{40\}\).*/\1/p' Dockerfile | head -1)
+          BRANCH=$(sed -n 's/^ARG GATECHECK_VERSION=\([A-Za-z0-9._\/-]*\).*/\1/p' Dockerfile | head -1)
+          if [ -z "$PIN" ] || [ -z "$BRANCH" ]; then
+            echo "::error::Could not parse GATECHECK_VERSION_COMMIT / GATECHECK_VERSION from Dockerfile."
+            echo "If those ARGs were renamed or reformatted, update this workflow to match."
+            exit 1
+          fi
+          echo "pin=$PIN"       >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Pinned commit: $PIN (source branch: $BRANCH)"
+
+      - name: Compare against the gatecheck source branch
+        id: drift
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PIN: ${{ steps.pin.outputs.pin }}
+          BRANCH: ${{ steps.pin.outputs.branch }}
+        run: |
+          set -euo pipefail
+          TIP=$(gh api "repos/easy-up/gatecheck/commits/${BRANCH}" --jq .sha)
+          echo "tip=$TIP" >> "$GITHUB_OUTPUT"
+
+          if [ "$TIP" = "$PIN" ]; then
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+            echo "In sync: pin == ${BRANCH} tip (${TIP})." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "drifted=true" >> "$GITHUB_OUTPUT"
+
+          # Commits the pin is missing. Tolerate failure: an unrelated/rewritten history makes
+          # compare 404, which must not fail the check — the drift itself is still worth reporting.
+          BEHIND=$(gh api "repos/easy-up/gatecheck/compare/${PIN}...${TIP}" \
+                     --jq '.commits[] | "- `\(.sha[0:7])` \(.commit.message | split("\n")[0])"' 2>/dev/null || true)
+          [ -n "$BEHIND" ] || BEHIND="- (could not list commits; compare the SHAs directly)"
+
+          {
+            echo "body<<EOF"
+            echo "\`GATECHECK_VERSION_COMMIT\` in \`Dockerfile\` is behind \`easy-up/gatecheck@${BRANCH}\`."
+            echo
+            echo "| | commit |"
+            echo "|---|---|"
+            echo "| Pinned here | \`${PIN}\` |"
+            echo "| ${BRANCH} tip | \`${TIP}\` |"
+            echo
+            echo "Not yet in any portage image:"
+            echo "${BEHIND}"
+            echo
+            echo "**This is not necessarily a problem.** The pin is intentional, so gatecheck changes"
+            echo "ship only when deliberately adopted. Act on this when those commits should reach users:"
+            echo
+            echo "1. Set \`ARG GATECHECK_VERSION_COMMIT=${TIP}\` in \`Dockerfile\` and commit to \`belay_main\`."
+            echo "   That publishes \`ghcr.io/easy-up/portage:belay-main-latest\`."
+            echo "2. Run the **portage-cd-actions** delivery workflow so"
+            echo "   \`ghcr.io/easy-up/portage-action:belay-main-latest\` rebuilds from the new base —"
+            echo "   nothing triggers it automatically."
+            echo
+            echo "See \`docs/developer_guide.md\` → Release Dependencies."
+            echo
+            echo "<!-- gatecheck-pin-drift -->"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Drift detected: pinned ${PIN}, ${BRANCH} tip ${TIP}." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the tracking issue
+        if: steps.drift.outputs.drifted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BODY: ${{ steps.drift.outputs.body }}
+          TIP: ${{ steps.drift.outputs.tip }}
+        run: |
+          set -euo pipefail
+          TITLE="Gatecheck pin is behind belay_main (tip ${TIP:0:7})"
+
+          # Reuse the existing issue rather than filing a new one each week. The marker comment in
+          # the body identifies issues this workflow owns.
+          EXISTING=$(gh issue list --state open --limit 100 --json number,body \
+                       --jq '[.[] | select(.body | contains("<!-- gatecheck-pin-drift -->"))][0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY"
+            echo "Updated existing issue #${EXISTING}." >> "$GITHUB_STEP_SUMMARY"
+          else
+            URL=$(gh issue create --title "$TITLE" --body "$BODY")
+            echo "Opened ${URL}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Runs after the issue exists, so the notification points at a record that already has the
+      # remediation steps. Failing is the notification mechanism here, not an error condition:
+      # drift is expected and legitimate until the new gatecheck commits are deliberately adopted.
+      - name: Fail the run so the drift is notified, not just recorded
+        if: steps.drift.outputs.drifted == 'true'
+        env:
+          PIN: ${{ steps.pin.outputs.pin }}
+          TIP: ${{ steps.drift.outputs.tip }}
+        run: |
+          echo "::error title=Gatecheck pin is behind::Pinned ${PIN:0:7}, belay_main tip ${TIP:0:7}. Bump ARG GATECHECK_VERSION_COMMIT in Dockerfile, then re-run the portage-cd-actions delivery workflow. See the tracking issue and docs/developer_guide.md."
+          exit 1
