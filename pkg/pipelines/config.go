@@ -91,6 +91,8 @@ type configDeploy struct {
 	PolicyURL string `mapstructure:"policyUrl"`
 	// PolicyAuthVar names the environment variable holding the policy credential
 	PolicyAuthVar string `mapstructure:"policyAuthVar"`
+	// FailOnVerdict fails the deploy step when a webhook response contains a "fail" verdict
+	FailOnVerdict bool `mapstructure:"failOnVerdict"`
 }
 
 // metaConfigField is used to map viper values to env variables and their associated default values
@@ -437,6 +439,14 @@ var metaConfig = []metaConfigField{
 		Default:         nil,
 		Description:     "Name of the environment variable holding the policy credential (defaults to the webhook credential)",
 	},
+	{
+		Key:             "deploy.failonverdict",
+		Env:             "PORTAGE_DEPLOY_FAIL_ON_VERDICT",
+		ActionInputName: "deploy_fail_on_verdict",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Fail the deploy step when a deploy webhook responds with a fail verdict (the verdict is always printed)",
+	},
 }
 
 // Add this near the top of the file with other type definitions
@@ -479,6 +489,7 @@ var defaults = map[string]defaultValues{
 	"deploy.waitforimagetimeout":      {value: defaultWaitForImageTimeout, configPath: "Deploy.WaitForImageTimeout"},
 	"deploy.waitforimagepollinterval": {value: defaultWaitForImagePollInterval, configPath: "Deploy.WaitForImagePollInterval"},
 	"deploy.validation":               {value: DeployValidationEnforce, configPath: "Deploy.Validation"},
+	"deploy.failonverdict":            {value: false, configPath: "Deploy.FailOnVerdict"},
 }
 
 // Add this new function
@@ -575,6 +586,7 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"deploy.validation",
 		"deploy.policyurl",
 		"deploy.policyauthvar",
+		"deploy.failonverdict",
 	}
 	fields := make([]metaConfigField, 0)
 

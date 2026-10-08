@@ -35,6 +35,9 @@ const (
 	policySourceLocal      = "local"
 )
 
+// maxWebhookResponseSize bounds how much of a webhook response is read
+const maxWebhookResponseSize = 1 << 20
+
 // gatecheck validate exits 1 for a validation failure, other non-zero codes are system errors
 const gatecheckExitValidationFail = 1
 
@@ -148,9 +151,11 @@ func (p *Deploy) Run() error {
 		slog.Warn("gatecheck validation FAILED (report mode): continuing to deploy webhooks, the webhook receiver makes the deployment decision")
 	}
 
+	failedVerdicts := 0
 	for i, hook := range p.config.Deploy.SuccessWebhooks {
+		safeURL := redactURL(hook.Url)
 		slog.Info("preparing to submit deployment success webhook",
-			"webhook_url", hook.Url,
+			"webhook_url", safeURL,
 			"authorization_var_name", hook.AuthorizationVar,
 			"index", i)
 
@@ -230,56 +235,74 @@ func (p *Deploy) Run() error {
 
 		if authValue != "" {
 			req.Header.Set("Authorization", authValue)
-			last4 := authValue
-			if len(authValue) > 4 {
-				last4 = authValue[len(authValue)-4:]
-			}
-			slog.Info("authorization header added to request", "source", authSource, "auth_last4", last4, "auth_length", len(authValue))
+			slog.Info("authorization header added to request", "source", authSource, "auth_length", len(authValue))
 		} else {
 			// Only fail if authorization was explicitly configured but not provided
 			// If no authorizationVar is specified, just warn (webhook might not require auth)
 			if hook.AuthorizationVar != "" {
 				return mkDeploymentError(fmt.Errorf("authorization required but environment variable '%s' is not set. Please set this variable in your GitLab CI environment", hook.AuthorizationVar))
 			} else {
-				slog.Warn("no authorization configured for webhook - proceeding without auth header", "webhook", hook.Url)
+				slog.Warn("no authorization configured for webhook - proceeding without auth header", "webhook_url", safeURL)
 			}
 		}
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			slog.Error("failed to execute HTTP request", "error", err)
-			return mkDeploymentError(err)
+			// url.Error embeds the full request URL, only report the underlying cause
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) {
+				err = urlErr.Err
+			}
+			slog.Error("failed to execute HTTP request", "webhook_url", safeURL, "error", err)
+			return mkDeploymentError(fmt.Errorf("webhook request to %s failed: %w", safeURL, err))
 		}
 		defer resp.Body.Close()
 
-		respBody, err := io.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxWebhookResponseSize))
 		if err != nil {
 			slog.Error("failed to read response body", "error", err)
 			return mkDeploymentError(err)
 		}
 
+		contentType := resp.Header.Get("Content-Type")
 		slog.Debug("received webhook response",
 			"status", resp.StatusCode,
-			"webhook", hook.Url,
-			"response_body", string(respBody),
-			"content_type", resp.Header.Get("Content-Type"))
+			"webhook_url", safeURL,
+			"content_type", contentType,
+			"bytes", len(respBody))
 
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			slog.Error("webhook returned non-success status",
-				"status", resp.StatusCode,
-				"response_body", string(respBody),
-				"webhook_url", hook.Url,
-				"error_details", map[string]interface{}{
-					"status_code": resp.StatusCode,
-					"headers":     resp.Header,
-					"body":        string(respBody),
-				})
-			return fmt.Errorf("webhook request failed with status: %d - response: %s - url: %s",
-				resp.StatusCode, string(respBody), hook.Url)
+		verdict := parseVerdict(contentType, respBody)
+		if verdict != nil {
+			writeVerdict(p.Stdout, verdict)
 		}
 
-		slog.Info("successfully submitted deployment success webhook", "webhook", hook)
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			slog.Error("webhook returned non-success status", "status", resp.StatusCode, "webhook_url", safeURL)
+			if verdict != nil {
+				return fmt.Errorf("webhook request failed with status: %d - url: %s", resp.StatusCode, safeURL)
+			}
+			return fmt.Errorf("webhook request failed with status: %d - response: %s - url: %s",
+				resp.StatusCode, sanitizeVerdictText(string(respBody)), safeURL)
+		}
+
+		slog.Info("successfully submitted deployment success webhook", "webhook_url", safeURL)
+
+		switch {
+		case verdict == nil:
+			slog.Debug("webhook response contained no verdict", "webhook_url", safeURL)
+		case verdict.Decision == VerdictDecisionFail:
+			failedVerdicts++
+			if p.config.Deploy.FailOnVerdict {
+				slog.Error("deploy webhook returned a fail verdict", "webhook_url", safeURL)
+			} else {
+				slog.Warn("deploy webhook returned a fail verdict, set deploy.failOnVerdict to fail this step", "webhook_url", safeURL)
+			}
+		}
+	}
+
+	if failedVerdicts > 0 && p.config.Deploy.FailOnVerdict {
+		return fmt.Errorf("deploy pipeline failed: %d deploy webhook(s) returned a fail verdict", failedVerdicts)
 	}
 
 	return nil

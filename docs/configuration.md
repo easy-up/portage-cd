@@ -155,6 +155,56 @@ variables:
 
 Requires a gatecheck version with `gatecheck config fetch`.
 
+### Deploy webhook verdict
+
+A deploy webhook can return its deployment decision, and portage prints it in the CI log. Receivers that return no verdict work exactly as before.
+
+**Response format.** Respond with `Content-Type: application/json` (or any `+json` type):
+
+```json
+{
+  "verdict": {
+    "decision": "fail",
+    "summary": "Deployment blocked",
+    "reasons": [
+      { "rule": "grype.critical", "status": "fail", "message": "3 critical (limit 0)" },
+      { "rule": "grype.high", "status": "accepted", "message": "4 high (limit 2), 2 covered by approved POA&M" },
+      { "rule": "sbom.required", "status": "pass", "message": "SBOM present" }
+    ],
+    "detailsUrl": "https://gate.example.com/builds/1234"
+  }
+}
+```
+
+| Field | Required | Values |
+|---|---|---|
+| `verdict.decision` | yes | `pass`, `fail`, `pending` (case-insensitive). Any other value is treated as no verdict. |
+| `verdict.summary` | no | One line of text. |
+| `verdict.reasons[].rule` | no | Rule identifier. |
+| `verdict.reasons[].status` | no | `pass`, `fail`, `accepted` (allowed by a risk acceptance). Other values print as `[-]`. |
+| `verdict.reasons[].message` | no | One line, e.g. counts and limits. |
+| `verdict.detailsUrl` | no | Link printed without its query string. |
+
+Return HTTP 2xx for a received submission whatever the decision; non-2xx means the submission itself failed (the verdict is still printed if present). Text is printed as single lines with control characters removed and each value capped at 300 characters; at most 50 reasons are shown. Keep messages to counts and limits: anything in them appears in CI logs.
+
+Example log output:
+
+```
+Deploy verdict: FAIL - Deployment blocked
+  [fail]     grype.critical  3 critical (limit 0)
+  [accepted] grype.high      4 high (limit 2), 2 covered by approved POA&M
+  [pass]     sbom.required   SBOM present
+  Details: https://gate.example.com/builds/1234
+```
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `deploy.failOnVerdict` | `PORTAGE_DEPLOY_FAIL_ON_VERDICT` | `false` |
+
+By default a `fail` verdict is printed and logged as a warning, and the step still succeeds. With `deploy.failOnVerdict: true` the step fails after all webhooks have been called if any returned `fail`. `pass` and `pending` never fail the step.
+
+Webhook URLs are logged without their query string, and the authorization value is never logged.
+
 ### Waiting for the published image before deploy
 
 When the image push runs as a separate CI step, `portage deploy` can submit to the deploy webhooks before the new image is in the registry, and the target deploys whatever the tag pointed to before. Enable `deploy.waitForImage` to hold the webhooks until the image is confirmed. It is off by default; with it off, deploy behaves exactly as before.

@@ -9,6 +9,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+* Print the deploy webhook verdict (`{"verdict": {"decision": ...}}`) in the CI log; opt-in `deploy.failOnVerdict` (`PORTAGE_DEPLOY_FAIL_ON_VERDICT`) fails the step on a `fail` verdict
+* Stop logging full webhook URLs, response bodies/headers and the last 4 characters of the webhook authorization value
+
 * Added opt-in `deploy.validation: report` (`PORTAGE_DEPLOY_VALIDATION`): validation results are printed and sent as webhook field `validation`, but no longer block deploy webhooks
 * Added `deploy.policyUrl` (`PORTAGE_DEPLOY_POLICY_URL`) to download the gatecheck config with `gatecheck config fetch`; local configs are ignored and a failed download fails the deploy (no fallback)
 

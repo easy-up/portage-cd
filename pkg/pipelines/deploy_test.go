@@ -50,6 +50,10 @@ type deployHarness struct {
 	// fields holds the multipart form values of each webhook request
 	fields []map[string]string
 	mu     sync.Mutex
+	// response returned by the webhook server, defaults to an empty 200
+	respStatus      int
+	respContentType string
+	respBody        string
 }
 
 func (h *deployHarness) lastFields(t *testing.T) map[string]string {
@@ -92,8 +96,16 @@ func newDeployHarness(t *testing.T) *deployHarness {
 		}
 		h.mu.Lock()
 		h.fields = append(h.fields, fields)
+		status, contentType, body := h.respStatus, h.respContentType, h.respBody
 		h.mu.Unlock()
-		w.WriteHeader(http.StatusOK)
+		if status == 0 {
+			status = http.StatusOK
+		}
+		if contentType != "" {
+			w.Header().Set("Content-Type", contentType)
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(server.Close)
 
