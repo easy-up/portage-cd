@@ -119,6 +119,42 @@ For parent/child pipelines, do not assume the child pipeline's `CI_PIPELINE_ID` 
 
 Use a provider-qualified project identity plus the provider's logical pipeline/run ID, for example `jenkins:payments:build-781` or `circleci:project-42:workflow-uuid`. The exact format is yours; it only needs to be opaque, stable across all parallel image jobs, and new for a new full grouped attempt. Do not use a per-job ID, timestamp generated independently in each job, image tag, commit SHA alone, or mutable branch name.
 
+### Deploy validation mode and remote policy
+
+By default (`enforce`), `portage deploy` stops before the deploy webhooks when `gatecheck validate` fails. When a webhook receiver such as a deployment gate makes the final decision, set report mode so every build reaches it:
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `deploy.validation` | `PORTAGE_DEPLOY_VALIDATION` | `enforce` |
+| `deploy.policyUrl` | `PORTAGE_DEPLOY_POLICY_URL` | unset |
+| `deploy.policyAuthVar` | `PORTAGE_DEPLOY_POLICY_AUTH_VAR` | see below |
+
+**`deploy.validation`**
+
+- `enforce`: unchanged behaviour. A validation failure fails the step and no webhook is sent.
+- `report`: `gatecheck validate` still runs and prints its results, but a validation failure (gatecheck exit code 1) is logged as a warning and the webhooks are still invoked. Other errors (missing bundle, gatecheck system errors) still fail the step. Each webhook request gets two extra form fields:
+  - `validation`: `passed` or `failed`
+  - `policy`: `fetched` (from `deploy.policyUrl`) or `local` (from the repository/default config)
+- Any other value is a configuration error.
+
+**`deploy.policyUrl`**
+
+When set, the gatecheck config is downloaded with `gatecheck config fetch` and used as-is for validation and for the `gatecheck-config` entry in the bundle. Local configs (`deploy.gatecheckConfigFilename`, `.gatecheck.yml`) are **ignored, not merged**, so a permissive local file cannot loosen the downloaded limits.
+
+There is **no fallback**: if the policy cannot be downloaded or is not a valid gatecheck config, the deploy step fails in both modes and no webhook is sent. A pipeline never silently validates against a different risk posture than the one it was configured for.
+
+Let CI build the URL from its own variables, for example in GitLab:
+
+```yaml
+variables:
+  PORTAGE_DEPLOY_VALIDATION: report
+  PORTAGE_DEPLOY_POLICY_URL: "https://belay-api.example.com/Policy/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/gatecheck?branch=$CI_COMMIT_REF_NAME"
+```
+
+**`deploy.policyAuthVar`** is the *name* of the environment variable holding the credential. Only the name is passed to gatecheck, so the value never appears on a command line. If unset, portage uses `PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER` when it is set, otherwise the first webhook's `authorizationVar`. A bare token is sent as `Bearer <token>`; a value that already includes a scheme is sent unchanged. The policy URL is logged without its query string.
+
+Requires a gatecheck version with `gatecheck config fetch`.
+
 ### Waiting for the published image before deploy
 
 When the image push runs as a separate CI step, `portage deploy` can submit to the deploy webhooks before the new image is in the registry, and the target deploys whatever the tag pointed to before. Enable `deploy.waitForImage` to hold the webhooks until the image is confirmed. It is off by default; with it off, deploy behaves exactly as before.

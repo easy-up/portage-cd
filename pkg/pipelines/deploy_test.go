@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,6 +18,15 @@ const stubGatecheck = `#!/bin/sh
 echo "gatecheck $*" >> "$STUB_LOG"
 if [ "$1" = "bundle" ] && [ "$2" = "create" ]; then echo bundle > "$3"; fi
 if [ "$1" = "validate" ]; then exit "${STUB_VALIDATE_EXIT:-0}"; fi
+if [ "$1" = "config" ] && [ "$2" = "fetch" ]; then
+  if [ -n "$STUB_FETCH_EXIT" ]; then echo "Error: config fetch: returned status 403" >&2; exit "$STUB_FETCH_EXIT"; fi
+  out=""
+  while [ $# -gt 0 ]; do
+    if [ "$1" = "-o" ]; then out="$2"; fi
+    shift
+  done
+  printf '%s' "$STUB_POLICY" > "$out"
+fi
 exit 0
 `
 
@@ -37,6 +47,19 @@ type deployHarness struct {
 	config   *Config
 	logFile  string
 	webhooks *atomic.Int32
+	// fields holds the multipart form values of each webhook request
+	fields []map[string]string
+	mu     sync.Mutex
+}
+
+func (h *deployHarness) lastFields(t *testing.T) map[string]string {
+	t.Helper()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if len(h.fields) == 0 {
+		t.Fatal("no webhook request received")
+	}
+	return h.fields[len(h.fields)-1]
 }
 
 func newDeployHarness(t *testing.T) *deployHarness {
@@ -58,9 +81,18 @@ func newDeployHarness(t *testing.T) *deployHarness {
 		t.Fatal(err)
 	}
 
-	webhooks := new(atomic.Int32)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		webhooks.Add(1)
+	h := &deployHarness{logFile: logFile, webhooks: new(atomic.Int32)}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.webhooks.Add(1)
+		fields := map[string]string{}
+		if err := r.ParseMultipartForm(1 << 20); err == nil {
+			for key, values := range r.MultipartForm.Value {
+				fields[key] = values[0]
+			}
+		}
+		h.mu.Lock()
+		h.fields = append(h.fields, fields)
+		h.mu.Unlock()
 		w.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(server.Close)
@@ -72,7 +104,8 @@ func newDeployHarness(t *testing.T) *deployHarness {
 	config.Deploy.GatecheckConfigFilename = gatecheckConfig
 	config.Deploy.SuccessWebhooks = []webhookConfig{{Url: server.URL + "/deploy"}}
 
-	return &deployHarness{config: config, logFile: logFile, webhooks: webhooks}
+	h.config = config
+	return h
 }
 
 func (h *deployHarness) calls(t *testing.T) string {

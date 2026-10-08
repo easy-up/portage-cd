@@ -85,6 +85,12 @@ type configDeploy struct {
 	WaitForImage             bool          `mapstructure:"waitForImage"`
 	WaitForImageTimeout      time.Duration `mapstructure:"waitForImageTimeout"`
 	WaitForImagePollInterval time.Duration `mapstructure:"waitForImagePollInterval"`
+	// Validation is "enforce" (validation failure blocks webhooks) or "report" (always continue to webhooks)
+	Validation string `mapstructure:"validation"`
+	// PolicyURL when set, the gatecheck config is downloaded from this URL instead of read locally
+	PolicyURL string `mapstructure:"policyUrl"`
+	// PolicyAuthVar names the environment variable holding the policy credential
+	PolicyAuthVar string `mapstructure:"policyAuthVar"`
 }
 
 // metaConfigField is used to map viper values to env variables and their associated default values
@@ -407,6 +413,30 @@ var metaConfig = []metaConfigField{
 		Default:         nil,
 		Description:     "Time between registry checks while waiting for the published image, e.g. 15s",
 	},
+	{
+		Key:             "deploy.validation",
+		Env:             "PORTAGE_DEPLOY_VALIDATION",
+		ActionInputName: "deploy_validation",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "enforce: a validation failure blocks deploy webhooks. report: validation results are printed and webhooks are always invoked",
+	},
+	{
+		Key:             "deploy.policyurl",
+		Env:             "PORTAGE_DEPLOY_POLICY_URL",
+		ActionInputName: "deploy_policy_url",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Download the gatecheck config from this URL instead of using a local file. A failed download fails the deploy",
+	},
+	{
+		Key:             "deploy.policyauthvar",
+		Env:             "PORTAGE_DEPLOY_POLICY_AUTH_VAR",
+		ActionInputName: "deploy_policy_auth_var",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Name of the environment variable holding the policy credential (defaults to the webhook credential)",
+	},
 }
 
 // Add this near the top of the file with other type definitions
@@ -448,6 +478,7 @@ var defaults = map[string]defaultValues{
 	"deploy.waitforimage":             {value: false, configPath: "Deploy.WaitForImage"},
 	"deploy.waitforimagetimeout":      {value: defaultWaitForImageTimeout, configPath: "Deploy.WaitForImageTimeout"},
 	"deploy.waitforimagepollinterval": {value: defaultWaitForImagePollInterval, configPath: "Deploy.WaitForImagePollInterval"},
+	"deploy.validation":               {value: DeployValidationEnforce, configPath: "Deploy.Validation"},
 }
 
 // Add this new function
@@ -541,6 +572,9 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"deploy.gatecheckconfigfilename",
 		"deploy.waitforimage",
 		"deploy.waitforimagetimeout",
+		"deploy.validation",
+		"deploy.policyurl",
+		"deploy.policyauthvar",
 	}
 	fields := make([]metaConfigField, 0)
 

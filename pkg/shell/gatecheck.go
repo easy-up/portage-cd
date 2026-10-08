@@ -142,3 +142,25 @@ func GatecheckValidate(options ...OptionFunc) error {
 	cmd := exec.Command("gatecheck", args...)
 	return run(cmd, o)
 }
+
+// GatecheckConfigFetch downloads and verifies a gatecheck configuration file
+//
+// Requirement: WithPolicyFetch, WithTargetFile (output filename)
+//
+// Output: debug to STDERR
+func GatecheckConfigFetch(options ...OptionFunc) error {
+	o := newOptions(options...)
+	cmd := exec.Command("gatecheck", gatecheckConfigFetchArgs(o)...)
+	return run(cmd, o)
+}
+
+func gatecheckConfigFetchArgs(o *Options) []string {
+	args := []string{"config", "fetch", "--url", o.gatecheck.policyURL, "-o", o.targetFilename}
+	if o.gatecheck.policyAuthEnv != "" {
+		args = append(args, "--auth-env", o.gatecheck.policyAuthEnv)
+	}
+	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
+		args = append(args, "-v")
+	}
+	return args
+}

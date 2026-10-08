@@ -9,6 +9,9 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+* Added opt-in `deploy.validation: report` (`PORTAGE_DEPLOY_VALIDATION`): validation results are printed and sent as webhook field `validation`, but no longer block deploy webhooks
+* Added `deploy.policyUrl` (`PORTAGE_DEPLOY_POLICY_URL`) to download the gatecheck config with `gatecheck config fetch`; local configs are ignored and a failed download fails the deploy (no fallback)
+
 * Added opt-in `deploy.waitForImage` (`PORTAGE_DEPLOY_WAIT_FOR_IMAGE`) to hold deploy webhooks until the built image is verified in the registry; records `build.publishedImage`, `build.imageDigest` and `build.imageVerification` in the bundle manifest (requires gatecheck with `--build-published-image` support)
 
 ## [v0.1.0] - 2026-03-28
