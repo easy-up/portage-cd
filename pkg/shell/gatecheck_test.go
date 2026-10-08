@@ -32,3 +32,23 @@ func TestAppendGatecheckBuildContextArgs_OmitsEmptyContext(t *testing.T) {
 		t.Fatalf("want %q, got %q", args, got)
 	}
 }
+
+func TestAppendGatecheckBuildContextArgs_PublishedImage(t *testing.T) {
+	o := newOptions(
+		WithBundleBuildContext("pipeline-123", "registry.example.com/team/api", nil),
+		WithBundlePublishedImage("registry.example.com/team/api:abc1234", "sha256:0123", "matched"),
+	)
+
+	got := appendGatecheckBuildContextArgs([]string{"bundle", "add"}, o)
+	want := []string{
+		"bundle", "add",
+		"--build-group-id", "pipeline-123",
+		"--image-name", "registry.example.com/team/api",
+		"--build-published-image", "registry.example.com/team/api:abc1234",
+		"--build-image-digest", "sha256:0123",
+		"--build-image-verification", "matched",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("want %q, got %q", want, got)
+	}
+}

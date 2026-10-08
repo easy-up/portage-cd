@@ -9,6 +9,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+* Added opt-in `deploy.waitForImage` (`PORTAGE_DEPLOY_WAIT_FOR_IMAGE`) to hold deploy webhooks until the built image is verified in the registry; records `build.publishedImage`, `build.imageDigest` and `build.imageVerification` in the bundle manifest (requires gatecheck with `--build-published-image` support)
+
 ## [v0.1.0] - 2026-03-28
 
 * Switch to building images with portage

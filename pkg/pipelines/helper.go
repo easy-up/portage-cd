@@ -75,6 +75,11 @@ func InitGatecheckBundle(config *Config, stderr io.Writer, dryRunEnabled bool) e
 }
 
 func AddBundleFile(config *Config, dryRunEnabled bool, bundleFilename string, filename string, artifactType string, stderr io.Writer) error {
+	return addBundleFile(config, dryRunEnabled, bundleFilename, filename, artifactType, stderr, nil)
+}
+
+// addBundleFile is AddBundleFile with an optional verified image recorded in the manifest build context
+func addBundleFile(config *Config, dryRunEnabled bool, bundleFilename string, filename string, artifactType string, stderr io.Writer, image *VerifiedImage) error {
 	slog.Debug("attempting to add file to bundle",
 		"bundle", bundleFilename,
 		"file", filename,
@@ -85,6 +90,9 @@ func AddBundleFile(config *Config, dryRunEnabled bool, bundleFilename string, fi
 		shell.WithBundleFile(bundleFilename, filename),
 		shell.WithBundleTags("type:" + artifactType),
 		shell.WithBundleBuildContext(config.BuildGroupID, config.ImageName, config.BuildImageNames),
+	}
+	if image != nil {
+		opts = append(opts, shell.WithBundlePublishedImage(image.Reference, image.Digest, image.Verification))
 	}
 
 	// If we're in debug mode (verbose), show all output

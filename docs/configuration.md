@@ -119,6 +119,46 @@ For parent/child pipelines, do not assume the child pipeline's `CI_PIPELINE_ID` 
 
 Use a provider-qualified project identity plus the provider's logical pipeline/run ID, for example `jenkins:payments:build-781` or `circleci:project-42:workflow-uuid`. The exact format is yours; it only needs to be opaque, stable across all parallel image jobs, and new for a new full grouped attempt. Do not use a per-job ID, timestamp generated independently in each job, image tag, commit SHA alone, or mutable branch name.
 
+### Waiting for the published image before deploy
+
+When the image push runs as a separate CI step, `portage deploy` can submit to the deploy webhooks before the new image is in the registry, and the target deploys whatever the tag pointed to before. Enable `deploy.waitForImage` to hold the webhooks until the image is confirmed. It is off by default; with it off, deploy behaves exactly as before.
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `deploy.waitForImage` | `PORTAGE_DEPLOY_WAIT_FOR_IMAGE` | `false` |
+| `deploy.waitForImageTimeout` | `PORTAGE_DEPLOY_WAIT_FOR_IMAGE_TIMEOUT` | `10m` |
+| `deploy.waitForImagePollInterval` | `PORTAGE_DEPLOY_WAIT_FOR_IMAGE_POLL_INTERVAL` | `15s` |
+
+The image checked is `imageTag` (`PORTAGE_IMAGE_TAG`). Registry lookups use `oras` with the CI job's own docker credentials (e.g. from `docker login`); the deploy webhook receiver never needs registry access.
+
+Before any webhook is sent, portage:
+
+1. Inspects the local image for `imageTag` with `docker` or `podman` (per `--cli-interface`).
+2. Polls the registry every poll interval until the timeout:
+   - **Local image available:** waits until the registry image *is* the local image: its config digest (selecting the local platform from a multi-arch index) or manifest/index digest equals the local image ID. The bundle records `imageVerification: matched`.
+   - **No local image** (e.g. image build disabled): waits until the tag exists, logs a warning, and records `imageVerification: exists-only`.
+3. If the timeout expires, the deploy step fails with a message naming the image, the expected config digest and the last one seen. **No webhook is sent.**
+
+When verification succeeds, the gatecheck bundle manifest records:
+
+```json
+{
+  "build": {
+    "publishedImage": "ghcr.io/acme/api:3f9c2a1b",
+    "imageDigest": "sha256:<registry manifest digest>",
+    "imageVerification": "matched"
+  }
+}
+```
+
+`imageDigest` is the registry manifest (or index) digest, so a deploy target can pin to `<image>@<imageDigest>`. All three fields are omitted when the feature is off.
+
+#### Tag guidance
+
+- **Reused tags** (`latest`, or the branch-name tag in `delivery.yml`) are only safe on the `matched` path. With `exists-only`, a reused tag that still points at the previous image passes immediately.
+- **Images built outside portage** (e.g. a separate build-and-push action): use a unique per-build tag such as the commit SHA, or have the deploy target pin by digest. If portage also builds the image locally but a different job rebuilds and pushes it, the two builds normally produce different config digests, so `matched` never succeeds and the step fails at the timeout. In that setup either push the image portage built, or turn off portage's image build so verification runs as `exists-only` against a unique tag.
+- `--dry-run` skips the wait.
+
 ### Using Environment Variables
 
 Environment variables are a convenient way to configure the application in environments where file access might be

@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"gopkg.in/yaml.v3"
@@ -79,6 +80,11 @@ type configDeploy struct {
 	GatecheckConfigFilename string          `mapstructure:"gatecheckConfigFilename"`
 	WebhookAuthHeader       string          `mapstructure:"webhookAuthHeader"`
 	SuccessWebhooks         []webhookConfig `mapstructure:"successWebhooks"`
+	// WaitForImage confirms imageTag exists in the registry, and is the locally built image when
+	// available, before any webhook is submitted
+	WaitForImage             bool          `mapstructure:"waitForImage"`
+	WaitForImageTimeout      time.Duration `mapstructure:"waitForImageTimeout"`
+	WaitForImagePollInterval time.Duration `mapstructure:"waitForImagePollInterval"`
 }
 
 // metaConfigField is used to map viper values to env variables and their associated default values
@@ -377,6 +383,30 @@ var metaConfig = []metaConfigField{
 		Default:         nil,
 		Description:     "Authorization header value for deployment webhook (overrides authorizationVar in config)",
 	},
+	{
+		Key:             "deploy.waitforimage",
+		Env:             "PORTAGE_DEPLOY_WAIT_FOR_IMAGE",
+		ActionInputName: "deploy_wait_for_image",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Wait until the image tag is published to the registry (and matches the locally built image when available) before invoking deploy webhooks",
+	},
+	{
+		Key:             "deploy.waitforimagetimeout",
+		Env:             "PORTAGE_DEPLOY_WAIT_FOR_IMAGE_TIMEOUT",
+		ActionInputName: "deploy_wait_for_image_timeout",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Maximum time to wait for the published image, e.g. 10m",
+	},
+	{
+		Key:             "deploy.waitforimagepollinterval",
+		Env:             "PORTAGE_DEPLOY_WAIT_FOR_IMAGE_POLL_INTERVAL",
+		ActionInputName: "deploy_wait_for_image_poll_interval",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Time between registry checks while waiting for the published image, e.g. 15s",
+	},
 }
 
 // Add this near the top of the file with other type definitions
@@ -413,8 +443,11 @@ var defaults = map[string]defaultValues{
 
 	"imagepublish.enabled": {value: true, configPath: "ImagePublish.Enabled"},
 
-	"deploy.enabled":                 {value: true, configPath: "Deploy.Enabled"},
-	"deploy.gatecheckconfigfilename": {value: "", configPath: "Deploy.GatecheckConfigFilename"},
+	"deploy.enabled":                  {value: true, configPath: "Deploy.Enabled"},
+	"deploy.gatecheckconfigfilename":  {value: "", configPath: "Deploy.GatecheckConfigFilename"},
+	"deploy.waitforimage":             {value: false, configPath: "Deploy.WaitForImage"},
+	"deploy.waitforimagetimeout":      {value: defaultWaitForImageTimeout, configPath: "Deploy.WaitForImageTimeout"},
+	"deploy.waitforimagepollinterval": {value: defaultWaitForImagePollInterval, configPath: "Deploy.WaitForImagePollInterval"},
 }
 
 // Add this new function
@@ -506,6 +539,8 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"imagepublish.bundletag",
 		"deploy.enabled",
 		"deploy.gatecheckconfigfilename",
+		"deploy.waitforimage",
+		"deploy.waitforimagetimeout",
 	}
 	fields := make([]metaConfigField, 0)
 

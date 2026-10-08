@@ -112,6 +112,15 @@ func appendGatecheckBuildContextArgs(args []string, o *Options) []string {
 	for _, imageName := range o.gatecheck.buildImages {
 		args = append(args, "--build-image-name", imageName)
 	}
+	if o.gatecheck.publishedImage != "" {
+		args = append(args, "--build-published-image", o.gatecheck.publishedImage)
+	}
+	if o.gatecheck.imageDigest != "" {
+		args = append(args, "--build-image-digest", o.gatecheck.imageDigest)
+	}
+	if o.gatecheck.imageVerification != "" {
+		args = append(args, "--build-image-verification", o.gatecheck.imageVerification)
+	}
 	return args
 }
 

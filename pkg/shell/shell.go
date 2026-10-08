@@ -83,6 +83,10 @@ type Options struct {
 		buildGroupID   string
 		imageName      string
 		buildImages    []string
+
+		publishedImage    string
+		imageDigest       string
+		imageVerification string
 	}
 
 	semgrep struct {
@@ -256,6 +260,17 @@ func WithBundleBuildContext(buildGroupID string, imageName string, buildImages [
 		o.gatecheck.buildGroupID = buildGroupID
 		o.gatecheck.imageName = imageName
 		o.gatecheck.buildImages = buildImages
+	}
+}
+
+// WithBundlePublishedImage records the registry image confirmed for this build in the bundle manifest
+//
+// verification is "matched" or "exists-only", "" values are omitted from the gatecheck arguments
+func WithBundlePublishedImage(publishedImage string, imageDigest string, verification string) OptionFunc {
+	return func(o *Options) {
+		o.gatecheck.publishedImage = publishedImage
+		o.gatecheck.imageDigest = imageDigest
+		o.gatecheck.imageVerification = verification
 	}
 }
 

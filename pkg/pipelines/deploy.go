@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"portage/pkg/shell"
+	"strings"
 
 	"github.com/jarxorg/tree"
 	"gopkg.in/yaml.v3"
@@ -22,9 +24,12 @@ type Deploy struct {
 	Stdout        io.Writer
 	Stderr        io.Writer
 	DryRunEnabled bool
+	DockerAlias   string
 	config        *Config
+	imageWaiter   *imageWaiter
 	runtime       struct {
 		bundleFilename string
+		verifiedImage  *VerifiedImage
 	}
 }
 
@@ -77,6 +82,10 @@ func (p *Deploy) Run() error {
 		return mkDeploymentError(err)
 	}
 
+	if err := p.waitForImage(); err != nil {
+		return err
+	}
+
 	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
 	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -123,7 +132,7 @@ func (p *Deploy) Run() error {
 		}
 	}
 
-	err = AddBundleFile(p.config, p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr)
+	err = addBundleFile(p.config, p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr, p.runtime.verifiedImage)
 	if err != nil {
 		return mkDeploymentError(err)
 	}
@@ -269,6 +278,52 @@ func (p *Deploy) Run() error {
 		slog.Info("successfully submitted deployment success webhook", "webhook", hook)
 	}
 
+	return nil
+}
+
+// waitForImage blocks until the configured image is verified in the registry when deploy.waitForImage is enabled
+//
+// Webhooks are never invoked if the image cannot be verified within the timeout.
+func (p *Deploy) waitForImage() error {
+	if !p.config.Deploy.WaitForImage {
+		return nil
+	}
+	if p.DryRunEnabled {
+		slog.Info("dry run: skipping wait for published image", "image", p.config.ImageTag)
+		return nil
+	}
+
+	waiter := p.imageWaiter
+	if waiter == nil {
+		alias := shell.DockerAliasDocker
+		if strings.ToLower(p.DockerAlias) == "podman" {
+			alias = shell.DockerAliasPodman
+		}
+		waiter = &imageWaiter{
+			registry:     orasRegistry{},
+			local:        cliImageStore{alias: alias},
+			timeout:      p.config.Deploy.WaitForImageTimeout,
+			pollInterval: p.config.Deploy.WaitForImagePollInterval,
+			sleep:        sleepContext,
+		}
+	}
+	if waiter.timeout <= 0 {
+		waiter.timeout = defaultWaitForImageTimeout
+	}
+	if waiter.pollInterval <= 0 {
+		waiter.pollInterval = defaultWaitForImagePollInterval
+	}
+
+	verified, err := waiter.Wait(context.Background(), p.config.ImageTag)
+	if err != nil {
+		slog.Error("published image verification failed, deploy webhooks will not be invoked", "image", p.config.ImageTag)
+		return fmt.Errorf("deploy pipeline failed: %w", err)
+	}
+	if verified.Verification == ImageVerificationExistsOnly {
+		slog.Warn("published image exists but was not compared to a local build; it is only safe to deploy if the tag is unique to this build",
+			"image", verified.Reference, "digest", verified.Digest)
+	}
+	p.runtime.verifiedImage = verified
 	return nil
 }
 
