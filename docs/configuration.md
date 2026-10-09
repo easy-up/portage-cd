@@ -119,6 +119,16 @@ For parent/child pipelines, do not assume the child pipeline's `CI_PIPELINE_ID` 
 
 Use a provider-qualified project identity plus the provider's logical pipeline/run ID, for example `jenkins:payments:build-781` or `circleci:project-42:workflow-uuid`. The exact format is yours; it only needs to be opaque, stable across all parallel image jobs, and new for a new full grouped attempt. Do not use a per-job ID, timestamp generated independently in each job, image tag, commit SHA alone, or mutable branch name.
 
+### Redacting vulnerability IDs in CI logs
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `redactCveIds` | `PORTAGE_REDACT_CVE_IDS` | `false` |
+
+When enabled, portage runs every gatecheck command with `--redact-cve-ids`. Vulnerability IDs (CVE, GHSA and common advisory formats) are replaced with `[redacted]` in gatecheck's logs, at every level including `--verbose`, and in the findings tables printed after the scans. Table rows, packages and severities are kept. Report files, the gatecheck bundle and what is sent to deploy webhooks are unchanged.
+
+The flag is passed explicitly, so a gatecheck build without redaction support fails the step instead of printing IDs. Requires gatecheck with `--redact-cve-ids`.
+
 ### Deploy validation mode and remote policy
 
 By default (`enforce`), `portage deploy` stops before the deploy webhooks when `gatecheck validate` fails. When a webhook receiver such as a deployment gate makes the final decision, set report mode so every build reaches it:

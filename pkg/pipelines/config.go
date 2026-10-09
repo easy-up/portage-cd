@@ -30,6 +30,8 @@ type Config struct {
 	CodeScan                configCodeScan     `mapstructure:"codeScan"`
 	ImagePublish            configImagePublish `mapstructure:"imagePublish"`
 	Deploy                  configDeploy       `mapstructure:"deploy"`
+	// RedactCVEIDs runs gatecheck with --redact-cve-ids so vulnerability IDs are not printed in CI logs
+	RedactCVEIDs bool `mapstructure:"redactCveIds"`
 }
 
 type webhookConfig struct {
@@ -447,6 +449,14 @@ var metaConfig = []metaConfigField{
 		Default:         nil,
 		Description:     "Fail the deploy step when a deploy webhook responds with a fail verdict (the verdict is always printed)",
 	},
+	{
+		Key:             "redactcveids",
+		Env:             "PORTAGE_REDACT_CVE_IDS",
+		ActionInputName: "redact_cve_ids",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Replace vulnerability IDs (CVE, GHSA, ...) with [redacted] in gatecheck logs and tables; report files are unchanged",
+	},
 }
 
 // Add this near the top of the file with other type definitions
@@ -460,6 +470,7 @@ var defaults = map[string]defaultValues{
 	"config":                  {value: ".portage.yml", configPath: ""},
 	"imagetag":                {value: "my-app:latest", configPath: "ImageTag"},
 	"artifactdir":             {value: "artifacts", configPath: "ArtifactDir"},
+	"redactcveids":            {value: false, configPath: "RedactCVEIDs"},
 	"gatecheckbundlefilename": {value: "gatecheck-bundle.tar.gz", configPath: "GatecheckBundleFilename"},
 
 	"imagebuild.enabled":      {value: true, configPath: "ImageBuild.Enabled"},
@@ -587,6 +598,7 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"deploy.policyurl",
 		"deploy.policyauthvar",
 		"deploy.failonverdict",
+		"redactcveids",
 	}
 	fields := make([]metaConfigField, 0)
 

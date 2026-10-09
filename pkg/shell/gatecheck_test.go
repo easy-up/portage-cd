@@ -52,3 +52,16 @@ func TestAppendGatecheckBuildContextArgs_PublishedImage(t *testing.T) {
 		t.Fatalf("want %q, got %q", want, got)
 	}
 }
+
+func TestGatecheckCommand_Redaction(t *testing.T) {
+	t.Cleanup(func() { SetGatecheckRedaction(false) })
+
+	if got := gatecheckCommand("list", "grype.json").Args; !reflect.DeepEqual(got, []string{"gatecheck", "list", "grype.json"}) {
+		t.Fatalf("default must not add the redaction flag, got %q", got)
+	}
+
+	SetGatecheckRedaction(true)
+	if got := gatecheckCommand("list", "grype.json").Args; !reflect.DeepEqual(got, []string{"gatecheck", "list", "grype.json", "--redact-cve-ids"}) {
+		t.Fatalf("want redaction flag appended, got %q", got)
+	}
+}

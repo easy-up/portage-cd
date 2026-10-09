@@ -3,7 +3,25 @@ package shell
 import (
 	"log/slog"
 	"os/exec"
+	"sync/atomic"
 )
+
+var gatecheckRedactCVEIDs atomic.Bool
+
+// SetGatecheckRedaction makes every gatecheck command run with --redact-cve-ids
+//
+// The flag is passed explicitly rather than through the environment so a gatecheck
+// version without redaction support fails instead of silently printing IDs.
+func SetGatecheckRedaction(on bool) {
+	gatecheckRedactCVEIDs.Store(on)
+}
+
+func gatecheckCommand(args ...string) *exec.Cmd {
+	if gatecheckRedactCVEIDs.Load() {
+		args = append(args, "--redact-cve-ids")
+	}
+	return exec.Command("gatecheck", args...)
+}
 
 // GatecheckVersion print version information
 //
@@ -16,7 +34,7 @@ func GatecheckVersion(options ...OptionFunc) error {
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		args = append(args, "-v")
 	}
-	cmd := exec.Command("gatecheck", args...)
+	cmd := gatecheckCommand(args...)
 	return run(cmd, o)
 }
 
@@ -32,10 +50,10 @@ func GatecheckList(options ...OptionFunc) error {
 		args = append(args, "-v")
 	}
 	if o.listTargetFilename != "" {
-		cmd := exec.Command("gatecheck", "list", o.listTargetFilename)
+		cmd := gatecheckCommand("list", o.listTargetFilename)
 		return run(cmd, o)
 	}
-	cmd := exec.Command("gatecheck", args...)
+	cmd := gatecheckCommand(args...)
 	return run(cmd, o)
 }
 
@@ -50,7 +68,7 @@ func GatecheckListAll(options ...OptionFunc) error {
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		args = append(args, "-v")
 	}
-	cmd := exec.Command("gatecheck", args...)
+	cmd := gatecheckCommand(args...)
 	return run(cmd, o)
 }
 
@@ -71,7 +89,7 @@ func GatecheckBundleAdd(options ...OptionFunc) error {
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		args = append(args, "-v")
 	}
-	cmd := exec.Command("gatecheck", args...)
+	cmd := gatecheckCommand(args...)
 	return run(cmd, o)
 }
 
@@ -98,7 +116,7 @@ func GatecheckBundleCreate(options ...OptionFunc) error {
 		"target", o.gatecheck.targetFile,
 		"tags", o.gatecheck.tags,
 		"args", args)
-	cmd := exec.Command("gatecheck", args...)
+	cmd := gatecheckCommand(args...)
 	return run(cmd, o)
 }
 
@@ -139,7 +157,7 @@ func GatecheckValidate(options ...OptionFunc) error {
 	if o.logger.Handler().Enabled(nil, slog.LevelDebug) {
 		args = append(args, "-v")
 	}
-	cmd := exec.Command("gatecheck", args...)
+	cmd := gatecheckCommand(args...)
 	return run(cmd, o)
 }
 
@@ -150,7 +168,7 @@ func GatecheckValidate(options ...OptionFunc) error {
 // Output: debug to STDERR
 func GatecheckConfigFetch(options ...OptionFunc) error {
 	o := newOptions(options...)
-	cmd := exec.Command("gatecheck", gatecheckConfigFetchArgs(o)...)
+	cmd := gatecheckCommand(gatecheckConfigFetchArgs(o)...)
 	return run(cmd, o)
 }
 
