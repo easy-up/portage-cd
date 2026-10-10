@@ -9,6 +9,8 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+* Updated gatecheck to belay_main 074abbf (config fetch, published image fields, negligible/unknown limits, --redact-cve-ids)
+
 * Added `redactCveIds` (`PORTAGE_REDACT_CVE_IDS`) to run gatecheck with `--redact-cve-ids`, keeping vulnerability IDs out of CI logs while verbose logging stays on
 
 * Print the deploy webhook verdict (`{"verdict": {"decision": ...}}`) in the CI log; opt-in `deploy.failOnVerdict` (`PORTAGE_DEPLOY_FAIL_ON_VERDICT`) fails the step on a `fail` verdict
