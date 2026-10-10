@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 	"portage/pkg/pipelines"
+	"portage/pkg/shell"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -84,6 +85,11 @@ func runCheckLoggingFlags(cmd *cobra.Command, _ []string) {
 		}
 	} else {
 		slog.Info("using config file", "path", viper.ConfigFileUsed())
+	}
+
+	if viper.GetBool("redactcveids") {
+		slog.Info("vulnerability IDs will be redacted in gatecheck output")
+		shell.SetGatecheckRedaction(true)
 	}
 
 	switch {

@@ -31,3 +31,27 @@ func OrasPushBundle(options ...OptionFunc) error {
 	)
 	return run(exe, o)
 }
+
+// OrasManifestDescriptor prints the registry descriptor (mediaType, digest, size) of an image reference
+//
+// Uses the registry credentials in the docker config (e.g. from docker login)
+//
+// Requirements: WithImageTag
+//
+// Output: descriptor JSON to STDOUT
+func OrasManifestDescriptor(options ...OptionFunc) error {
+	o := newOptions(options...)
+	exe := exec.Command("oras", "manifest", "fetch", "--descriptor", o.imageTag)
+	return run(exe, o)
+}
+
+// OrasManifestFetch prints the raw manifest or index of an image reference
+//
+// Requirements: WithImageTag
+//
+// Output: manifest JSON to STDOUT
+func OrasManifestFetch(options ...OptionFunc) error {
+	o := newOptions(options...)
+	exe := exec.Command("oras", "manifest", "fetch", o.imageTag)
+	return run(exe, o)
+}

@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -9,22 +10,48 @@ import (
 	"log/slog"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"portage/pkg/shell"
+	"strings"
 
 	"github.com/jarxorg/tree"
 	"gopkg.in/yaml.v3"
 )
 
+// Values for deploy.validation
+const (
+	DeployValidationEnforce = "enforce"
+	DeployValidationReport  = "report"
+)
+
+// Values sent in the report mode webhook form fields "validation" and "policy"
+const (
+	validationResultPassed = "passed"
+	validationResultFailed = "failed"
+	policySourceFetched    = "fetched"
+	policySourceLocal      = "local"
+)
+
+// maxWebhookResponseSize bounds how much of a webhook response is read
+const maxWebhookResponseSize = 1 << 20
+
+// gatecheck validate exits 1 for a validation failure, other non-zero codes are system errors
+const gatecheckExitValidationFail = 1
+
 type Deploy struct {
 	Stdout        io.Writer
 	Stderr        io.Writer
 	DryRunEnabled bool
+	DockerAlias   string
 	config        *Config
+	imageWaiter   *imageWaiter
 	runtime       struct {
 		bundleFilename string
+		verifiedImage  *VerifiedImage
+		validationMode string
 	}
 }
 
@@ -71,59 +98,37 @@ func (p *Deploy) Run() error {
 		return errors.New("deploy Pipeline failed, pre-run error. See logs for details")
 	}
 
+	mode, err := deployValidationMode(p.config.Deploy.Validation)
+	if err != nil {
+		return err
+	}
+	p.runtime.validationMode = mode
+	if mode == DeployValidationReport {
+		slog.Warn("deploy validation is in report mode: gatecheck results are printed but do not block deploy webhooks; the webhook receiver makes the deployment decision")
+	}
+
 	// Ensure artifacts directory exists before attempting to create files in it
 	if err := MakeDirectoryP(p.config.ArtifactDir); err != nil {
 		slog.Error("failed to create artifact directory", "name", p.config.ArtifactDir)
 		return mkDeploymentError(err)
 	}
 
-	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
-	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return mkDeploymentError(err)
+	if err := p.waitForImage(); err != nil {
+		return err
 	}
-	defer gatecheckConfig.Close()
 
-	if p.config.Deploy.GatecheckConfigFilename != "" {
-		customConfigFile, err := os.ReadFile(p.config.Deploy.GatecheckConfigFilename)
-		if err != nil {
-			return mkDeploymentError(err)
-		}
-
-		err = mergeAndSaveGatecheckConfig(customConfigFile, gatecheckConfig)
-		if err != nil {
+	gatecheckConfigPath := path.Join(p.config.ArtifactDir, "gatecheck-config.yml")
+	policySource := policySourceLocal
+	if p.config.Deploy.PolicyURL != "" {
+		if err := p.fetchPolicy(gatecheckConfigPath); err != nil {
 			return err
 		}
-	} else {
-		// Automatically handle an optional .gatecheck.yml or .gatecheck.yaml file in the working directory
-		// Unlike an explicitly specified configuration file, do not error if it does not exist.
-		customConfigFile, err := os.ReadFile(".gatecheck.yml")
-		if err != nil {
-			if os.IsNotExist(err) {
-				customConfigFile, err = os.ReadFile(".gatecheck.yaml")
-				if err != nil && !os.IsNotExist(err) {
-					return mkDeploymentError(err)
-				}
-			} else {
-				// The file exists, but it isn't readable
-				return mkDeploymentError(err)
-			}
-		}
-
-		if len(customConfigFile) > 0 {
-			err = mergeAndSaveGatecheckConfig(customConfigFile, gatecheckConfig)
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err = gatecheckConfig.Write([]byte(gatecheckDefaultConfig))
-			if err != nil {
-				return mkDeploymentError(err)
-			}
-		}
+		policySource = policySourceFetched
+	} else if err := p.writeLocalGatecheckConfig(gatecheckConfigPath); err != nil {
+		return err
 	}
 
-	err = AddBundleFile(p.config, p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr)
+	err = addBundleFile(p.config, p.DryRunEnabled, p.runtime.bundleFilename, gatecheckConfigPath, "gatecheck-config", p.Stderr, p.runtime.verifiedImage)
 	if err != nil {
 		return mkDeploymentError(err)
 	}
@@ -135,13 +140,22 @@ func (p *Deploy) Run() error {
 		shell.WithTargetFile(p.runtime.bundleFilename),
 		shell.WithConfigFile(gatecheckConfigPath),
 	)
+	validationResult := validationResultPassed
 	if err != nil {
-		return mkDeploymentError(err)
+		var cmdErr *shell.ErrCommand
+		isValidationFailure := errors.As(err, &cmdErr) && cmdErr.ExitCode == gatecheckExitValidationFail
+		if p.runtime.validationMode != DeployValidationReport || !isValidationFailure {
+			return mkDeploymentError(err)
+		}
+		validationResult = validationResultFailed
+		slog.Warn("gatecheck validation FAILED (report mode): continuing to deploy webhooks, the webhook receiver makes the deployment decision")
 	}
 
+	failedVerdicts := 0
 	for i, hook := range p.config.Deploy.SuccessWebhooks {
+		safeURL := redactURL(hook.Url)
 		slog.Info("preparing to submit deployment success webhook",
-			"webhook_url", hook.Url,
+			"webhook_url", safeURL,
 			"authorization_var_name", hook.AuthorizationVar,
 			"index", i)
 
@@ -158,6 +172,10 @@ func (p *Deploy) Run() error {
 
 		writer.WriteField("action", "deploy")
 		writer.WriteField("status", "success")
+		if p.runtime.validationMode == DeployValidationReport {
+			writer.WriteField("validation", validationResult)
+			writer.WriteField("policy", policySource)
+		}
 
 		bundleFilePart, err := writer.CreateFormFile("bundle", filepath.Base(p.runtime.bundleFilename))
 		if err != nil {
@@ -217,58 +235,240 @@ func (p *Deploy) Run() error {
 
 		if authValue != "" {
 			req.Header.Set("Authorization", authValue)
-			last4 := authValue
-			if len(authValue) > 4 {
-				last4 = authValue[len(authValue)-4:]
-			}
-			slog.Info("authorization header added to request", "source", authSource, "auth_last4", last4, "auth_length", len(authValue))
+			slog.Info("authorization header added to request", "source", authSource, "auth_length", len(authValue))
 		} else {
 			// Only fail if authorization was explicitly configured but not provided
 			// If no authorizationVar is specified, just warn (webhook might not require auth)
 			if hook.AuthorizationVar != "" {
 				return mkDeploymentError(fmt.Errorf("authorization required but environment variable '%s' is not set. Please set this variable in your GitLab CI environment", hook.AuthorizationVar))
 			} else {
-				slog.Warn("no authorization configured for webhook - proceeding without auth header", "webhook", hook.Url)
+				slog.Warn("no authorization configured for webhook - proceeding without auth header", "webhook_url", safeURL)
 			}
 		}
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			slog.Error("failed to execute HTTP request", "error", err)
-			return mkDeploymentError(err)
+			// url.Error embeds the full request URL, only report the underlying cause
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) {
+				err = urlErr.Err
+			}
+			slog.Error("failed to execute HTTP request", "webhook_url", safeURL, "error", err)
+			return mkDeploymentError(fmt.Errorf("webhook request to %s failed: %w", safeURL, err))
 		}
 		defer resp.Body.Close()
 
-		respBody, err := io.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxWebhookResponseSize))
 		if err != nil {
 			slog.Error("failed to read response body", "error", err)
 			return mkDeploymentError(err)
 		}
 
+		contentType := resp.Header.Get("Content-Type")
 		slog.Debug("received webhook response",
 			"status", resp.StatusCode,
-			"webhook", hook.Url,
-			"response_body", string(respBody),
-			"content_type", resp.Header.Get("Content-Type"))
+			"webhook_url", safeURL,
+			"content_type", contentType,
+			"bytes", len(respBody))
 
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			slog.Error("webhook returned non-success status",
-				"status", resp.StatusCode,
-				"response_body", string(respBody),
-				"webhook_url", hook.Url,
-				"error_details", map[string]interface{}{
-					"status_code": resp.StatusCode,
-					"headers":     resp.Header,
-					"body":        string(respBody),
-				})
-			return fmt.Errorf("webhook request failed with status: %d - response: %s - url: %s",
-				resp.StatusCode, string(respBody), hook.Url)
+		verdict := parseVerdict(contentType, respBody)
+		if verdict != nil {
+			writeVerdict(p.Stdout, verdict)
 		}
 
-		slog.Info("successfully submitted deployment success webhook", "webhook", hook)
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			slog.Error("webhook returned non-success status", "status", resp.StatusCode, "webhook_url", safeURL)
+			if verdict != nil {
+				return fmt.Errorf("webhook request failed with status: %d - url: %s", resp.StatusCode, safeURL)
+			}
+			return fmt.Errorf("webhook request failed with status: %d - response: %s - url: %s",
+				resp.StatusCode, sanitizeVerdictText(string(respBody)), safeURL)
+		}
+
+		slog.Info("successfully submitted deployment success webhook", "webhook_url", safeURL)
+
+		switch {
+		case verdict == nil:
+			slog.Debug("webhook response contained no verdict", "webhook_url", safeURL)
+		case verdict.Decision == VerdictDecisionFail:
+			failedVerdicts++
+			if p.config.Deploy.FailOnVerdict {
+				slog.Error("deploy webhook returned a fail verdict", "webhook_url", safeURL)
+			} else {
+				slog.Warn("deploy webhook returned a fail verdict, set deploy.failOnVerdict to fail this step", "webhook_url", safeURL)
+			}
+		}
 	}
 
+	if failedVerdicts > 0 && p.config.Deploy.FailOnVerdict {
+		return fmt.Errorf("deploy pipeline failed: %d deploy webhook(s) returned a fail verdict", failedVerdicts)
+	}
+
+	return nil
+}
+
+// writeLocalGatecheckConfig merges the configured or working directory gatecheck config with the defaults
+func (p *Deploy) writeLocalGatecheckConfig(gatecheckConfigPath string) error {
+	gatecheckConfig, err := os.OpenFile(gatecheckConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return mkDeploymentError(err)
+	}
+	defer gatecheckConfig.Close()
+
+	if p.config.Deploy.GatecheckConfigFilename != "" {
+		customConfigFile, err := os.ReadFile(p.config.Deploy.GatecheckConfigFilename)
+		if err != nil {
+			return mkDeploymentError(err)
+		}
+
+		err = mergeAndSaveGatecheckConfig(customConfigFile, gatecheckConfig)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Automatically handle an optional .gatecheck.yml or .gatecheck.yaml file in the working directory
+		// Unlike an explicitly specified configuration file, do not error if it does not exist.
+		customConfigFile, err := os.ReadFile(".gatecheck.yml")
+		if err != nil {
+			if os.IsNotExist(err) {
+				customConfigFile, err = os.ReadFile(".gatecheck.yaml")
+				if err != nil && !os.IsNotExist(err) {
+					return mkDeploymentError(err)
+				}
+			} else {
+				// The file exists, but it isn't readable
+				return mkDeploymentError(err)
+			}
+		}
+
+		if len(customConfigFile) > 0 {
+			err = mergeAndSaveGatecheckConfig(customConfigFile, gatecheckConfig)
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err = gatecheckConfig.Write([]byte(gatecheckDefaultConfig))
+			if err != nil {
+				return mkDeploymentError(err)
+			}
+		}
+	}
+	return nil
+}
+
+// fetchPolicy downloads the gatecheck config from deploy.policyUrl into gatecheckConfigPath
+//
+// There is no fallback: if the policy cannot be fetched the deploy fails, so a pipeline never
+// silently validates against a different (possibly more permissive) local config.
+func (p *Deploy) fetchPolicy(gatecheckConfigPath string) error {
+	safeURL := redactURL(p.config.Deploy.PolicyURL)
+	authVar := p.policyAuthVar()
+
+	ignored := p.config.Deploy.GatecheckConfigFilename
+	if ignored == "" {
+		ignored = ".gatecheck.yml/.gatecheck.yaml"
+	}
+	slog.Info("using gatecheck policy from deploy.policyUrl, local gatecheck config is ignored",
+		"policy_url", safeURL, "auth_var_name", authVar, "ignored_local_config", ignored)
+
+	err := shell.GatecheckConfigFetch(
+		shell.WithDryRun(p.DryRunEnabled),
+		shell.WithStdout(p.Stdout),
+		shell.WithStderr(p.Stderr),
+		shell.WithPolicyFetch(p.config.Deploy.PolicyURL, authVar),
+		shell.WithTargetFile(gatecheckConfigPath),
+		shell.WithDisplayCommand("gatecheck config fetch --url "+safeURL+" -o "+gatecheckConfigPath),
+	)
+	if err != nil {
+		slog.Error("failed to fetch gatecheck policy, deploy webhooks will not be invoked", "policy_url", safeURL)
+		return fmt.Errorf("deploy pipeline failed: could not fetch gatecheck policy from %s: %w", safeURL, err)
+	}
+	return nil
+}
+
+// policyAuthVar resolves the environment variable NAME holding the policy credential
+//
+// Order: deploy.policyAuthVar, PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER when set, then the first
+// webhook authorizationVar. The credential value is never passed on the command line.
+func (p *Deploy) policyAuthVar() string {
+	if p.config.Deploy.PolicyAuthVar != "" {
+		return p.config.Deploy.PolicyAuthVar
+	}
+	if os.Getenv("PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER") != "" {
+		return "PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER"
+	}
+	for _, hook := range p.config.Deploy.SuccessWebhooks {
+		if hook.AuthorizationVar != "" {
+			return hook.AuthorizationVar
+		}
+	}
+	return ""
+}
+
+func deployValidationMode(value string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", DeployValidationEnforce:
+		return DeployValidationEnforce, nil
+	case DeployValidationReport:
+		return DeployValidationReport, nil
+	}
+	return "", fmt.Errorf("deploy pipeline failed: invalid deploy.validation %q, must be %q or %q",
+		value, DeployValidationEnforce, DeployValidationReport)
+}
+
+// redactURL returns scheme://host/path without user info, query or fragment
+func redactURL(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "<invalid url>"
+	}
+	return (&url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path}).String()
+}
+
+// waitForImage blocks until the configured image is verified in the registry when deploy.waitForImage is enabled
+//
+// Webhooks are never invoked if the image cannot be verified within the timeout.
+func (p *Deploy) waitForImage() error {
+	if !p.config.Deploy.WaitForImage {
+		return nil
+	}
+	if p.DryRunEnabled {
+		slog.Info("dry run: skipping wait for published image", "image", p.config.ImageTag)
+		return nil
+	}
+
+	waiter := p.imageWaiter
+	if waiter == nil {
+		alias := shell.DockerAliasDocker
+		if strings.ToLower(p.DockerAlias) == "podman" {
+			alias = shell.DockerAliasPodman
+		}
+		waiter = &imageWaiter{
+			registry:     orasRegistry{},
+			local:        cliImageStore{alias: alias},
+			timeout:      p.config.Deploy.WaitForImageTimeout,
+			pollInterval: p.config.Deploy.WaitForImagePollInterval,
+			sleep:        sleepContext,
+		}
+	}
+	if waiter.timeout <= 0 {
+		waiter.timeout = defaultWaitForImageTimeout
+	}
+	if waiter.pollInterval <= 0 {
+		waiter.pollInterval = defaultWaitForImagePollInterval
+	}
+
+	verified, err := waiter.Wait(context.Background(), p.config.ImageTag)
+	if err != nil {
+		slog.Error("published image verification failed, deploy webhooks will not be invoked", "image", p.config.ImageTag)
+		return fmt.Errorf("deploy pipeline failed: %w", err)
+	}
+	if verified.Verification == ImageVerificationExistsOnly {
+		slog.Warn("published image exists but was not compared to a local build; it is only safe to deploy if the tag is unique to this build",
+			"image", verified.Reference, "digest", verified.Digest)
+	}
+	p.runtime.verifiedImage = verified
 	return nil
 }
 

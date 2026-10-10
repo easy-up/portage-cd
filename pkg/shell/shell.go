@@ -70,6 +70,8 @@ type Options struct {
 	metadata           struct {
 		commandName string
 	}
+	// displayCommand replaces the command line in logs when arguments must not be logged verbatim
+	displayCommand string
 
 	logger *slog.Logger
 
@@ -83,6 +85,13 @@ type Options struct {
 		buildGroupID   string
 		imageName      string
 		buildImages    []string
+
+		publishedImage    string
+		imageDigest       string
+		imageVerification string
+
+		policyURL     string
+		policyAuthEnv string
 	}
 
 	semgrep struct {
@@ -259,6 +268,34 @@ func WithBundleBuildContext(buildGroupID string, imageName string, buildImages [
 	}
 }
 
+// WithBundlePublishedImage records the registry image confirmed for this build in the bundle manifest
+//
+// verification is "matched" or "exists-only", "" values are omitted from the gatecheck arguments
+func WithBundlePublishedImage(publishedImage string, imageDigest string, verification string) OptionFunc {
+	return func(o *Options) {
+		o.gatecheck.publishedImage = publishedImage
+		o.gatecheck.imageDigest = imageDigest
+		o.gatecheck.imageVerification = verification
+	}
+}
+
+// WithPolicyFetch gatecheck config fetch parameters
+//
+// authEnv is the NAME of the environment variable holding the credential, never the credential itself
+func WithPolicyFetch(url string, authEnv string) OptionFunc {
+	return func(o *Options) {
+		o.gatecheck.policyURL = url
+		o.gatecheck.policyAuthEnv = authEnv
+	}
+}
+
+// WithDisplayCommand logs the given text instead of the full command line
+func WithDisplayCommand(display string) OptionFunc {
+	return func(o *Options) {
+		o.displayCommand = display
+	}
+}
+
 // WithTargetFile generic parameter that needs a specific filename
 func WithTargetFile(filename string) OptionFunc {
 	return func(o *Options) {
@@ -353,7 +390,11 @@ func gracefulExit(commandError error, o *Options) error {
 //
 // Setting the dry run option will always return ExitOK
 func run(cmd *exec.Cmd, o *Options) error {
-	o.logger.Info("shell exec", "dry_run", o.dryRunEnabled, "command", cmd.String(), "errors_only", o.errorOnly)
+	display := cmd.String()
+	if o.displayCommand != "" {
+		display = o.displayCommand
+	}
+	o.logger.Info("shell exec", "dry_run", o.dryRunEnabled, "command", display, "errors_only", o.errorOnly)
 
 	o.metadata.commandName = cmd.Args[0]
 
@@ -396,7 +437,7 @@ func run(cmd *exec.Cmd, o *Options) error {
 	// capture the exit code
 	select {
 	case <-o.ctx.Done():
-		o.logger.Warn("command canceled", "command", cmd.String())
+		o.logger.Warn("command canceled", "command", display)
 		if err := cmd.Process.Kill(); err != nil {
 			err = fmt.Errorf("%w: %w", ErrInteruptFail, err)
 			return gracefulExit(err, o)

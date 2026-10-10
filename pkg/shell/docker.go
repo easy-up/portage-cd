@@ -75,6 +75,25 @@ func DockerPush(optionFuncs ...OptionFunc) error {
 	}
 }
 
+// DockerImageInspect print local image metadata, supports CLI aliases (ex. podman image inspect)
+//
+// Requirements: WithImageTag, optional WithDockerAlias
+//
+// Outputs: JSON array to STDOUT
+func DockerImageInspect(optionFuncs ...OptionFunc) error {
+	o := newOptions(optionFuncs...)
+	switch o.dockerAlias {
+	case DockerAliasDocker:
+		cmd := exec.Command("docker", "image", "inspect", o.imageTag)
+		return run(cmd, o)
+	case DockerAliasPodman:
+		cmd := exec.Command("podman", "image", "inspect", o.imageTag)
+		return run(cmd, o)
+	default:
+		return fmt.Errorf("only docker/podman aliases are supported: %w", ErrBadParameters)
+	}
+}
+
 // DockerInfo print system configuration information
 //
 // Requirements: optional WithDockerAlias

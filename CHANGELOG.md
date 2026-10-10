@@ -9,6 +9,16 @@ Version header format: `## [x.x.x] - yyyy-mm-dd`
 
 ## [UNRELEASED]
 
+* Added `redactCveIds` (`PORTAGE_REDACT_CVE_IDS`) to run gatecheck with `--redact-cve-ids`, keeping vulnerability IDs out of CI logs while verbose logging stays on
+
+* Print the deploy webhook verdict (`{"verdict": {"decision": ...}}`) in the CI log; opt-in `deploy.failOnVerdict` (`PORTAGE_DEPLOY_FAIL_ON_VERDICT`) fails the step on a `fail` verdict
+* Stop logging full webhook URLs, response bodies/headers and the last 4 characters of the webhook authorization value
+
+* Added opt-in `deploy.validation: report` (`PORTAGE_DEPLOY_VALIDATION`): validation results are printed and sent as webhook field `validation`, but no longer block deploy webhooks
+* Added `deploy.policyUrl` (`PORTAGE_DEPLOY_POLICY_URL`) to download the gatecheck config with `gatecheck config fetch`; local configs are ignored and a failed download fails the deploy (no fallback)
+
+* Added opt-in `deploy.waitForImage` (`PORTAGE_DEPLOY_WAIT_FOR_IMAGE`) to hold deploy webhooks until the built image is verified in the registry; records `build.publishedImage`, `build.imageDigest` and `build.imageVerification` in the bundle manifest (requires gatecheck with `--build-published-image` support)
+
 ## [v0.1.0] - 2026-03-28
 
 * Switch to building images with portage

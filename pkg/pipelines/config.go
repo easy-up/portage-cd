@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"gopkg.in/yaml.v3"
@@ -29,6 +30,8 @@ type Config struct {
 	CodeScan                configCodeScan     `mapstructure:"codeScan"`
 	ImagePublish            configImagePublish `mapstructure:"imagePublish"`
 	Deploy                  configDeploy       `mapstructure:"deploy"`
+	// RedactCVEIDs runs gatecheck with --redact-cve-ids so vulnerability IDs are not printed in CI logs
+	RedactCVEIDs bool `mapstructure:"redactCveIds"`
 }
 
 type webhookConfig struct {
@@ -79,6 +82,19 @@ type configDeploy struct {
 	GatecheckConfigFilename string          `mapstructure:"gatecheckConfigFilename"`
 	WebhookAuthHeader       string          `mapstructure:"webhookAuthHeader"`
 	SuccessWebhooks         []webhookConfig `mapstructure:"successWebhooks"`
+	// WaitForImage confirms imageTag exists in the registry, and is the locally built image when
+	// available, before any webhook is submitted
+	WaitForImage             bool          `mapstructure:"waitForImage"`
+	WaitForImageTimeout      time.Duration `mapstructure:"waitForImageTimeout"`
+	WaitForImagePollInterval time.Duration `mapstructure:"waitForImagePollInterval"`
+	// Validation is "enforce" (validation failure blocks webhooks) or "report" (always continue to webhooks)
+	Validation string `mapstructure:"validation"`
+	// PolicyURL when set, the gatecheck config is downloaded from this URL instead of read locally
+	PolicyURL string `mapstructure:"policyUrl"`
+	// PolicyAuthVar names the environment variable holding the policy credential
+	PolicyAuthVar string `mapstructure:"policyAuthVar"`
+	// FailOnVerdict fails the deploy step when a webhook response contains a "fail" verdict
+	FailOnVerdict bool `mapstructure:"failOnVerdict"`
 }
 
 // metaConfigField is used to map viper values to env variables and their associated default values
@@ -377,6 +393,70 @@ var metaConfig = []metaConfigField{
 		Default:         nil,
 		Description:     "Authorization header value for deployment webhook (overrides authorizationVar in config)",
 	},
+	{
+		Key:             "deploy.waitforimage",
+		Env:             "PORTAGE_DEPLOY_WAIT_FOR_IMAGE",
+		ActionInputName: "deploy_wait_for_image",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Wait until the image tag is published to the registry (and matches the locally built image when available) before invoking deploy webhooks",
+	},
+	{
+		Key:             "deploy.waitforimagetimeout",
+		Env:             "PORTAGE_DEPLOY_WAIT_FOR_IMAGE_TIMEOUT",
+		ActionInputName: "deploy_wait_for_image_timeout",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Maximum time to wait for the published image, e.g. 10m",
+	},
+	{
+		Key:             "deploy.waitforimagepollinterval",
+		Env:             "PORTAGE_DEPLOY_WAIT_FOR_IMAGE_POLL_INTERVAL",
+		ActionInputName: "deploy_wait_for_image_poll_interval",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Time between registry checks while waiting for the published image, e.g. 15s",
+	},
+	{
+		Key:             "deploy.validation",
+		Env:             "PORTAGE_DEPLOY_VALIDATION",
+		ActionInputName: "deploy_validation",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "enforce: a validation failure blocks deploy webhooks. report: validation results are printed and webhooks are always invoked",
+	},
+	{
+		Key:             "deploy.policyurl",
+		Env:             "PORTAGE_DEPLOY_POLICY_URL",
+		ActionInputName: "deploy_policy_url",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Download the gatecheck config from this URL instead of using a local file. A failed download fails the deploy",
+	},
+	{
+		Key:             "deploy.policyauthvar",
+		Env:             "PORTAGE_DEPLOY_POLICY_AUTH_VAR",
+		ActionInputName: "deploy_policy_auth_var",
+		ActionType:      "String",
+		Default:         nil,
+		Description:     "Name of the environment variable holding the policy credential (defaults to the webhook credential)",
+	},
+	{
+		Key:             "deploy.failonverdict",
+		Env:             "PORTAGE_DEPLOY_FAIL_ON_VERDICT",
+		ActionInputName: "deploy_fail_on_verdict",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Fail the deploy step when a deploy webhook responds with a fail verdict (the verdict is always printed)",
+	},
+	{
+		Key:             "redactcveids",
+		Env:             "PORTAGE_REDACT_CVE_IDS",
+		ActionInputName: "redact_cve_ids",
+		ActionType:      "Bool",
+		Default:         nil,
+		Description:     "Replace vulnerability IDs (CVE, GHSA, ...) with [redacted] in gatecheck logs and tables; report files are unchanged",
+	},
 }
 
 // Add this near the top of the file with other type definitions
@@ -390,6 +470,7 @@ var defaults = map[string]defaultValues{
 	"config":                  {value: ".portage.yml", configPath: ""},
 	"imagetag":                {value: "my-app:latest", configPath: "ImageTag"},
 	"artifactdir":             {value: "artifacts", configPath: "ArtifactDir"},
+	"redactcveids":            {value: false, configPath: "RedactCVEIDs"},
 	"gatecheckbundlefilename": {value: "gatecheck-bundle.tar.gz", configPath: "GatecheckBundleFilename"},
 
 	"imagebuild.enabled":      {value: true, configPath: "ImageBuild.Enabled"},
@@ -413,8 +494,13 @@ var defaults = map[string]defaultValues{
 
 	"imagepublish.enabled": {value: true, configPath: "ImagePublish.Enabled"},
 
-	"deploy.enabled":                 {value: true, configPath: "Deploy.Enabled"},
-	"deploy.gatecheckconfigfilename": {value: "", configPath: "Deploy.GatecheckConfigFilename"},
+	"deploy.enabled":                  {value: true, configPath: "Deploy.Enabled"},
+	"deploy.gatecheckconfigfilename":  {value: "", configPath: "Deploy.GatecheckConfigFilename"},
+	"deploy.waitforimage":             {value: false, configPath: "Deploy.WaitForImage"},
+	"deploy.waitforimagetimeout":      {value: defaultWaitForImageTimeout, configPath: "Deploy.WaitForImageTimeout"},
+	"deploy.waitforimagepollinterval": {value: defaultWaitForImagePollInterval, configPath: "Deploy.WaitForImagePollInterval"},
+	"deploy.validation":               {value: DeployValidationEnforce, configPath: "Deploy.Validation"},
+	"deploy.failonverdict":            {value: false, configPath: "Deploy.FailOnVerdict"},
 }
 
 // Add this new function
@@ -506,6 +592,13 @@ func githubActionsMetaConfig(additionalInputs []string) ([]metaConfigField, erro
 		"imagepublish.bundletag",
 		"deploy.enabled",
 		"deploy.gatecheckconfigfilename",
+		"deploy.waitforimage",
+		"deploy.waitforimagetimeout",
+		"deploy.validation",
+		"deploy.policyurl",
+		"deploy.policyauthvar",
+		"deploy.failonverdict",
+		"redactcveids",
 	}
 	fields := make([]metaConfigField, 0)
 

@@ -161,7 +161,8 @@ func runDeploy(cmd *cobra.Command, _ []string, force bool) error {
 		deployEnabledVar := os.Getenv("PORTAGE_DEPLOY_ENABLED")
 		slog.Debug("deploy task is enabled", "env", deployEnabledVar)
 	}
-	return deployPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled)
+	cliInterface, _ := cmd.Flags().GetString("cli-interface")
+	return deployPipeline(cmd.OutOrStdout(), cmd.ErrOrStderr(), config, dryRunEnabled, cliInterface)
 }
 
 func runImageBuild(cmd *cobra.Command, _ []string) error {
@@ -265,9 +266,10 @@ func codeScanPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Conf
 	return pipeline.WithConfig(config).Run()
 }
 
-func deployPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool) error {
+func deployPipeline(stdout io.Writer, stderr io.Writer, config *pipelines.Config, dryRunEnabled bool, cliInterface string) error {
 	pipeline := pipelines.NewDeploy(stdout, stderr)
 	pipeline.DryRunEnabled = dryRunEnabled
+	pipeline.DockerAlias = cliInterface
 
 	pipeline = pipeline.WithConfig(config)
 	if pipeline == nil {

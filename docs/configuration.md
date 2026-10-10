@@ -119,6 +119,142 @@ For parent/child pipelines, do not assume the child pipeline's `CI_PIPELINE_ID` 
 
 Use a provider-qualified project identity plus the provider's logical pipeline/run ID, for example `jenkins:payments:build-781` or `circleci:project-42:workflow-uuid`. The exact format is yours; it only needs to be opaque, stable across all parallel image jobs, and new for a new full grouped attempt. Do not use a per-job ID, timestamp generated independently in each job, image tag, commit SHA alone, or mutable branch name.
 
+### Redacting vulnerability IDs in CI logs
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `redactCveIds` | `PORTAGE_REDACT_CVE_IDS` | `false` |
+
+When enabled, portage runs every gatecheck command with `--redact-cve-ids`. Vulnerability IDs (CVE, GHSA and common advisory formats) are replaced with `[redacted]` in gatecheck's logs, at every level including `--verbose`, and in the findings tables printed after the scans. Table rows, packages and severities are kept. Report files, the gatecheck bundle and what is sent to deploy webhooks are unchanged.
+
+The flag is passed explicitly, so a gatecheck build without redaction support fails the step instead of printing IDs. Requires gatecheck with `--redact-cve-ids`.
+
+### Deploy validation mode and remote policy
+
+By default (`enforce`), `portage deploy` stops before the deploy webhooks when `gatecheck validate` fails. When a webhook receiver such as a deployment gate makes the final decision, set report mode so every build reaches it:
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `deploy.validation` | `PORTAGE_DEPLOY_VALIDATION` | `enforce` |
+| `deploy.policyUrl` | `PORTAGE_DEPLOY_POLICY_URL` | unset |
+| `deploy.policyAuthVar` | `PORTAGE_DEPLOY_POLICY_AUTH_VAR` | see below |
+
+**`deploy.validation`**
+
+- `enforce`: unchanged behaviour. A validation failure fails the step and no webhook is sent.
+- `report`: `gatecheck validate` still runs and prints its results, but a validation failure (gatecheck exit code 1) is logged as a warning and the webhooks are still invoked. Other errors (missing bundle, gatecheck system errors) still fail the step. Each webhook request gets two extra form fields:
+  - `validation`: `passed` or `failed`
+  - `policy`: `fetched` (from `deploy.policyUrl`) or `local` (from the repository/default config)
+- Any other value is a configuration error.
+
+**`deploy.policyUrl`**
+
+When set, the gatecheck config is downloaded with `gatecheck config fetch` and used as-is for validation and for the `gatecheck-config` entry in the bundle. Local configs (`deploy.gatecheckConfigFilename`, `.gatecheck.yml`) are **ignored, not merged**, so a permissive local file cannot loosen the downloaded limits.
+
+There is **no fallback**: if the policy cannot be downloaded or is not a valid gatecheck config, the deploy step fails in both modes and no webhook is sent. A pipeline never silently validates against a different risk posture than the one it was configured for.
+
+Let CI build the URL from its own variables, for example in GitLab:
+
+```yaml
+variables:
+  PORTAGE_DEPLOY_VALIDATION: report
+  PORTAGE_DEPLOY_POLICY_URL: "https://belay-api.example.com/Policy/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/gatecheck?branch=$CI_COMMIT_REF_NAME"
+```
+
+**`deploy.policyAuthVar`** is the *name* of the environment variable holding the credential. Only the name is passed to gatecheck, so the value never appears on a command line. If unset, portage uses `PORTAGE_DEPLOY_WEBHOOK_AUTH_HEADER` when it is set, otherwise the first webhook's `authorizationVar`. A bare token is sent as `Bearer <token>`; a value that already includes a scheme is sent unchanged. The policy URL is logged without its query string.
+
+Requires a gatecheck version with `gatecheck config fetch`.
+
+### Deploy webhook verdict
+
+A deploy webhook can return its deployment decision, and portage prints it in the CI log. Receivers that return no verdict work exactly as before.
+
+**Response format.** Respond with `Content-Type: application/json` (or any `+json` type):
+
+```json
+{
+  "verdict": {
+    "decision": "fail",
+    "summary": "Deployment blocked",
+    "reasons": [
+      { "rule": "grype.critical", "status": "fail", "message": "3 critical (limit 0)" },
+      { "rule": "grype.high", "status": "accepted", "message": "4 high (limit 2), 2 covered by approved POA&M" },
+      { "rule": "sbom.required", "status": "pass", "message": "SBOM present" }
+    ],
+    "detailsUrl": "https://gate.example.com/builds/1234"
+  }
+}
+```
+
+| Field | Required | Values |
+|---|---|---|
+| `verdict.decision` | yes | `pass`, `fail`, `pending` (case-insensitive). Any other value is treated as no verdict. |
+| `verdict.summary` | no | One line of text. |
+| `verdict.reasons[].rule` | no | Rule identifier. |
+| `verdict.reasons[].status` | no | `pass`, `fail`, `accepted` (allowed by a risk acceptance). Other values print as `[-]`. |
+| `verdict.reasons[].message` | no | One line, e.g. counts and limits. |
+| `verdict.detailsUrl` | no | Link printed without its query string. |
+
+Return HTTP 2xx for a received submission whatever the decision; non-2xx means the submission itself failed (the verdict is still printed if present). Text is printed as single lines with control characters removed and each value capped at 300 characters; at most 50 reasons are shown. Keep messages to counts and limits: anything in them appears in CI logs.
+
+Example log output:
+
+```
+Deploy verdict: FAIL - Deployment blocked
+  [fail]     grype.critical  3 critical (limit 0)
+  [accepted] grype.high      4 high (limit 2), 2 covered by approved POA&M
+  [pass]     sbom.required   SBOM present
+  Details: https://gate.example.com/builds/1234
+```
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `deploy.failOnVerdict` | `PORTAGE_DEPLOY_FAIL_ON_VERDICT` | `false` |
+
+By default a `fail` verdict is printed and logged as a warning, and the step still succeeds. With `deploy.failOnVerdict: true` the step fails after all webhooks have been called if any returned `fail`. `pass` and `pending` never fail the step.
+
+Webhook URLs are logged without their query string, and the authorization value is never logged.
+
+### Waiting for the published image before deploy
+
+When the image push runs as a separate CI step, `portage deploy` can submit to the deploy webhooks before the new image is in the registry, and the target deploys whatever the tag pointed to before. Enable `deploy.waitForImage` to hold the webhooks until the image is confirmed. It is off by default; with it off, deploy behaves exactly as before.
+
+| Config key | Environment variable | Default |
+|---|---|---|
+| `deploy.waitForImage` | `PORTAGE_DEPLOY_WAIT_FOR_IMAGE` | `false` |
+| `deploy.waitForImageTimeout` | `PORTAGE_DEPLOY_WAIT_FOR_IMAGE_TIMEOUT` | `10m` |
+| `deploy.waitForImagePollInterval` | `PORTAGE_DEPLOY_WAIT_FOR_IMAGE_POLL_INTERVAL` | `15s` |
+
+The image checked is `imageTag` (`PORTAGE_IMAGE_TAG`). Registry lookups use `oras` with the CI job's own docker credentials (e.g. from `docker login`); the deploy webhook receiver never needs registry access.
+
+Before any webhook is sent, portage:
+
+1. Inspects the local image for `imageTag` with `docker` or `podman` (per `--cli-interface`).
+2. Polls the registry every poll interval until the timeout:
+   - **Local image available:** waits until the registry image *is* the local image: its config digest (selecting the local platform from a multi-arch index) or manifest/index digest equals the local image ID. The bundle records `imageVerification: matched`.
+   - **No local image** (e.g. image build disabled): waits until the tag exists, logs a warning, and records `imageVerification: exists-only`.
+3. If the timeout expires, the deploy step fails with a message naming the image, the expected config digest and the last one seen. **No webhook is sent.**
+
+When verification succeeds, the gatecheck bundle manifest records:
+
+```json
+{
+  "build": {
+    "publishedImage": "ghcr.io/acme/api:3f9c2a1b",
+    "imageDigest": "sha256:<registry manifest digest>",
+    "imageVerification": "matched"
+  }
+}
+```
+
+`imageDigest` is the registry manifest (or index) digest, so a deploy target can pin to `<image>@<imageDigest>`. All three fields are omitted when the feature is off.
+
+#### Tag guidance
+
+- **Reused tags** (`latest`, or the branch-name tag in `delivery.yml`) are only safe on the `matched` path. With `exists-only`, a reused tag that still points at the previous image passes immediately.
+- **Images built outside portage** (e.g. a separate build-and-push action): use a unique per-build tag such as the commit SHA, or have the deploy target pin by digest. If portage also builds the image locally but a different job rebuilds and pushes it, the two builds normally produce different config digests, so `matched` never succeeds and the step fails at the timeout. In that setup either push the image portage built, or turn off portage's image build so verification runs as `exists-only` against a unique tag.
+- `--dry-run` skips the wait.
+
 ### Using Environment Variables
 
 Environment variables are a convenient way to configure the application in environments where file access might be
