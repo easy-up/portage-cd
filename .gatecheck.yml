@@ -68,6 +68,16 @@ grype:
             # Alpine glib package pulled into the Podman image. No fix version
             # is currently available; pending Alpine package refresh.
             - id: CVE-2026-58016
+            # Go stdlib (go1.25.10) in bundled Docker CLI and Buildx binaries.
+            # Root.Mkdir junction handling; Windows only, image is Linux. Fix in
+            # Go 1.26.9 / 1.27.2; pending Docker package refresh.
+            - id: CVE-2026-56857
+            # HTTP/2 server flow-control bug in golang.org/x/net (bundled Grype,
+            # Syft, Buildx) and Go stdlib (bundled Docker CLI, Buildx). These
+            # tools run only as HTTP clients, never as HTTP/2 servers. Fix in
+            # x/net v0.60.0 / Go 1.26.9; Portage itself is bumped, others pending
+            # tool upgrades.
+            - id: CVE-2026-78663
     severityLimit:
         # Critical is a hard gate at 0 — any unaccepted critical must fail the
         # build and be reviewed. Known critical findings from the failed
